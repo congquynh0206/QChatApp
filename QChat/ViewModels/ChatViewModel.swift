@@ -10,29 +10,39 @@ import FirebaseFirestore
 import FirebaseAuth
 
 class ChatViewModel: ObservableObject {
-    // 1. Biến này chứa danh sách tin nhắn.
-    // Khi biến này thay đổi (@Published), màn hình sẽ tự vẽ lại.
     @Published var messages: [Message] = []
+    
+    @Published var currentUserName: String = "Unknown"
     
     // Khởi tạo database
     private let db = Firestore.firestore()
     
     init() {
-        // Tự động đăng nhập ẩn danh ngay khi mở app
-        loginAnonymously()
-        // Bắt đầu lắng nghe tin nhắn từ Server
+        fetchCurrentUserProfile()
         fetchMessages()
     }
     
-    func loginAnonymously() {
-        Auth.auth().signInAnonymously { result, error in
-            if let error = error {
-                print("Lỗi đăng nhập: \(error.localizedDescription)")
-            } else {
-                print("Đã đăng nhập ẩn danh với ID: \(result?.user.uid ?? "")")
+    func fetchCurrentUserProfile() {
+            // Lấy ID người dùng đang đăng nhập
+            guard let uid = Auth.auth().currentUser?.uid else { return }
+            
+            // Tìm trong bảng 'users' xem ông này tên là gì
+            db.collection("users").document(uid).getDocument { snapshot, error in
+                if let error = error {
+                    print("Lỗi lấy user profile: \(error.localizedDescription)")
+                    return
+                }
+                
+                // Lấy dữ liệu về
+                if let data = snapshot?.data(),
+                   let name = data["username"] as? String {
+                    // Lưu vào biến để tí nữa dùng gửi tin nhắn
+                    DispatchQueue.main.async {
+                        self.currentUserName = name
+                    }
+                }
             }
         }
-    }
     
     // Hàm Lấy tin nhắn (Real-time)
     func fetchMessages() {
@@ -53,11 +63,12 @@ class ChatViewModel: ObservableObject {
                     let data = document.data()
                     let id = document.documentID
                     let text = data["text"] as? String ?? ""
+                    let userName =  data["userName"] as? String ?? "Người lạ"
                     let userId = data["userId"] as? String ?? ""
                     // Xử lý thời gian (Timestamp của Firebase -> Date của Swift)
                     let timestamp = (data["timestamp"] as? Timestamp)?.dateValue() ?? Date()
                     
-                    return Message(id: id, text: text, userId: userId, timestamp: timestamp)
+                    return Message(id: id, text: text, userId: userId,userName: userName ,timestamp: timestamp)
                 }
             }
     }
@@ -69,7 +80,8 @@ class ChatViewModel: ObservableObject {
         let data: [String: Any] = [
             "text": text,
             "userId": currentUserID,
-            "timestamp": Timestamp(date: Date()) // Lấy giờ hiện tại
+            "userName": self.currentUserName,
+            "timestamp": Timestamp(date: Date())
         ]
         
         // Đẩy lên Firebase

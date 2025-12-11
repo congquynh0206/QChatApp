@@ -12,7 +12,7 @@ import FirebaseCore
 class AppDelegate: NSObject, UIApplicationDelegate {
   func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-    // Bật công tắc Firebase
+    // Bật Firebase
     FirebaseApp.configure()
     print(" Đã kết nối Firebase thành công!")
     return true
@@ -20,13 +20,17 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 }
 
 @main
-struct SimpleChatApp: App {
-    // Gắn bộ điều khiển vào ứng dụng SwiftUI
+struct QChatApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-
+    @StateObject var authViewModel = AuthViewModel()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if authViewModel.userSession != nil {
+                ContentView().environmentObject(authViewModel)
+            }else{
+                LoginView().environmentObject(authViewModel)
+            }
         }
     }
 }

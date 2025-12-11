@@ -12,4 +12,14 @@ struct Message: Identifiable, Codable {
     var userId: String
     var userName: String
     var timestamp: Date
+    
+    var dictionary: [String: Any] {
+        return [
+            "id": id,
+            "text": text,
+            "userId": userId,
+            "userName": userName,
+            "timestamp": timestamp
+        ]
+    }
 }

@@ -13,7 +13,7 @@ struct User: Identifiable, Codable {
     let username: String
     var avatar: String?
     
-    // Hàm tiện ích để chuyển đổi sang Dictionary khi lưu lên Firebase
+    // chuyển đổi sang Dictionary khi lưu lên Firebase
     var dictionary: [String: Any] {
         return [
             "id": id,
@@ -21,5 +21,21 @@ struct User: Identifiable, Codable {
             "username": username,
             "avatar": avatar ?? ""
         ]
+    }
+}
+
+extension User{
+    init? (dictionary: [String:Any] ){
+        
+        guard let id = dictionary["id"] as? String,
+              let email = dictionary["email"] as? String,
+              let username = dictionary["username"] as? String
+        else {
+            return nil
+        }
+        self.id = id
+        self.email = email
+        self.username = username
+        self.avatar = dictionary["avatar"] as? String
     }
 }

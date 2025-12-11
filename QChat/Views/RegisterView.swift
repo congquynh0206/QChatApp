@@ -1,0 +1,127 @@
+//
+//  RegisterView.swift
+//  QChat
+//
+//  Created by Trangptt on 11/12/25.
+//
+import SwiftUI
+
+struct RegisterView: View {
+    
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @StateObject var viewModel = RegisterViewModel()
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 15) {
+                //Logo
+                Image("logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 120, height: 100)
+                
+                //Form
+                CustomTextField(placeholder: "Your name", text: $viewModel.name, systemIcon: "person", secret: false)
+                
+                CustomTextField(placeholder: "Your email", text: $viewModel.email, systemIcon: "envelope", secret: false)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.red, lineWidth: (!viewModel.email.isEmpty && !viewModel.isValidEmail) ? 1 : 0)
+                    )
+                
+                CustomTextField(placeholder: "Password", text: $viewModel.password, systemIcon: "lock", secret: true)
+                    .overlay(alignment: .trailing) {
+                        if viewModel.passwordsMatch {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .padding(.trailing, 12)
+                        }
+                    }
+                
+                // Password strength
+                if !viewModel.password.isEmpty {
+                    VStack(alignment: .leading, spacing: 5) {
+                        ProgressView(value: viewModel.passwordStrengthScore, total: 4)
+                            .accentColor(viewModel.strengthColor)
+                            .scaleEffect(x: 1, y: 2, anchor: .center)
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                        
+                        Text(viewModel.strengthLabel)
+                            .font(.caption)
+                            .foregroundColor(viewModel.strengthColor)
+                    }
+                    .padding(.horizontal)
+                }
+                
+                // Confirm pass
+                CustomTextField(placeholder: "Confirm Password", text: $viewModel.confirmPass, systemIcon: "lock", secret: true)
+                    .overlay(alignment: .trailing) {
+                        if viewModel.passwordsMatch {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .padding(.trailing, 12)
+                        }
+                    }
+                
+                // Register button
+                Button {
+                    Task {
+                        await viewModel.registerUser(authViewModel: authViewModel)
+                    }
+                } label: {
+                    if viewModel.isLoading {
+                        ProgressView() // loading
+                            .tint(.white)
+                    } else {
+                        Text("Register")
+                            .bold()
+                    }
+                }
+                .foregroundColor(.white)
+                .frame(width: 200, height: 25)
+                .padding()
+                .background(Color.blue)
+                .cornerRadius(10)
+                .disabled(!viewModel.isFormValid)
+                .opacity(viewModel.isFormValid ? 1: 0.6)
+                
+                
+                Button {
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text("Already have an account?")
+                        Text("Login now").bold()
+                    }
+                    .font(.footnote)
+                    .foregroundColor(.blue)
+                }
+            }
+            .padding()
+            
+        }
+        // 1. Alert Thành công
+        .alert("Success", isPresented: $viewModel.showSuccessAlert) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text("Account created successfully! We have sent a verification email to \(viewModel.email). Please check your inbox and verify your email before logging in.")
+        }
+        
+        // 2. Alert Lỗi
+        .alert("Error", isPresented: $viewModel.showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(viewModel.errorMessage)
+        }
+        
+    }
+}
+
+
+#Preview {
+    RegisterView()
+        .environmentObject(AuthViewModel())
+}

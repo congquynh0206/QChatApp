@@ -25,7 +25,7 @@ struct ContentView: View {
                 .bold()
                 .padding()
             
-            // --- PHẦN 2: DANH SÁCH TIN NHẮN ---
+            // Dsach tin nhắn
             ScrollViewReader { proxy in // Proxy giúp điều khiển việc cuộn
                 ScrollView {
                     LazyVStack {
@@ -70,7 +70,7 @@ struct ContentView: View {
 }
 
 
-// Giao diện của 1 dòng tin nhắn
+// Giao diện của 1 dòng tin nhăn
 struct MessageRow: View {
     let message: Message
     let isMe: Bool
@@ -80,19 +80,26 @@ struct MessageRow: View {
             if isMe { Spacer() } // Nếu là tôi: Đẩy sang phải
             
             VStack(alignment: isMe ? .trailing : .leading) {
+                
+                // Nếu không phải mình thì hiện tên
+                if !isMe{
+                    Text("\(message.userName)")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                }
                 Text(message.text)
                     .padding(10)
                     .foregroundColor(isMe ? .white : .black)
                     .background(isMe ? Color.blue : Color(.systemGray5))
                     .cornerRadius(10)
                 
-                // Hiển thị giờ nhỏ xíu bên dưới
+                // Hiển thị giờ
                 Text("\(message.timestamp.formatted(.dateTime.hour().minute()))")
                     .font(.caption2)
                     .foregroundColor(.gray)
             }
             
-            if !isMe { Spacer() } // Nếu là bạn: Đẩy sang trái
+            if !isMe { Spacer() } // Nếu là mình thì Đẩy sang trái
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 2)
