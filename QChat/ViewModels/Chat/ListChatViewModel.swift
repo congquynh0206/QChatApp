@@ -53,7 +53,7 @@ class ListChatViewModel: ObservableObject {
         // Lắng nghe Real-time
         firestoreListener = query.addSnapshotListener { snapshot, error in
             if let error = error {
-                print("Lỗi load inbox: \(error.localizedDescription)")
+                print("ListChatViewModel_1: \(error.localizedDescription)")
                 self.isLoading = false
                 return
             }

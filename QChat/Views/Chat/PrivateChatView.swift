@@ -40,20 +40,9 @@ struct PrivateChatView: View {
             }
             
             // Thanh nhập tin nhắn
-            HStack {
-                TextField("Nhập tin nhắn...", text: $viewModel.text)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .frame(minHeight: 40)
-                
-                Button {
-                    viewModel.sendMessage() 
-                } label: {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 22))
-                        .rotationEffect(.degrees(45))
-                }
+            InputMessageView(text: $viewModel.text) {
+                viewModel.sendMessage()
             }
-            .padding()
         }
         // Tiêu đề là tên người mình đang chat
         .navigationTitle(viewModel.user.username)

@@ -83,31 +83,13 @@ struct GroupChatView: View {
                     }
                 }
             }
-            // Màu nền cho vùng chat (hơi xám nhẹ để nổi bật header trắng)
+            // Màu nền hơi xám nhẹ để nổi bật header trắng
             .background(Color(.systemGray6).opacity(0.3))
             
             // Thanh nhập liệu
-            HStack {
-                TextField("Enter message...", text: $text)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .frame(minHeight: 40)
-                
-                Button {
-                    if !text.isEmpty {
-                        viewModel.sendMessage(text: text)
-                        text = ""
-                    }
-                } label: {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(.blue)
-                        .padding(8)
-                }
-            }
-            .padding()
-            .background(Color(.systemGray5))
-            .overlay(alignment: .top) {
-                Divider()
+            InputMessageView(text: $text) {
+                viewModel.sendMessage(text: text)
+                text = ""
             }
         }
     }

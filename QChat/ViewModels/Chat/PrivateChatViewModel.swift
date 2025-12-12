@@ -27,25 +27,20 @@ class PrivateChatViewModel : ObservableObject{
             
             let chatId = ChatService.getChatId(fromId: currentId, toId: user.id)
             
-            // debug
-            print("Đang lấy tin nhắn từ ChatID: \(chatId)")
-            
             Firestore.firestore().collection("chats")
                 .document(chatId)
                 .collection("messages")
                 .order(by: "timestamp", descending: false)
                 .addSnapshotListener { snapshot, error in
                     if let error = error {
-                        print("Lỗi load tin nhắn: \(error.localizedDescription)")
+                        print("PrivateChatViewModel_1: \(error.localizedDescription)")
                         return
                     }
                     
                     guard let documents = snapshot?.documents else {
-                        print("Không tìm thấy documents nào")
+                        print("PrivateChatViewModel_2")
                         return
                     }
-                    
-                    print("Tìm thấy \(documents.count) tin nhắn") // Debug số lượng
                     
                     self.messages = documents.compactMap { document -> Message? in
                         let data = document.data()
@@ -60,7 +55,7 @@ class PrivateChatViewModel : ObservableObject{
                 }
         }
     
-    // Load tên của mình
+    // Load tên của mình để gửi kèm khi gửi tin nhăns mới
     func fetchCurrentUserProfile() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         
@@ -78,10 +73,13 @@ class PrivateChatViewModel : ObservableObject{
     func sendMessage() {
         guard let currentUid = Auth.auth().currentUser?.uid else { return }
         if text.isEmpty { return }
+        // Id của người kia
         let chatPartnerId = user.id
         
-        
+        // Lấy chat id
         let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
+        
+        // Chuẩn bị data để add document
         let data: [String: Any] = [
             "text": text,
             "userId": currentUid,
@@ -89,14 +87,17 @@ class PrivateChatViewModel : ObservableObject{
             "timestamp": Timestamp(date: Date())
         ]
         
+        // Add document
         Firestore.firestore().collection("chats")
             .document(chatId)
             .collection("messages")
             .addDocument(data: data) { error in
                 if let error = error {
-                    print("Error sending private: \(error.localizedDescription)")
+                    print("PrivateChatViewModel_3: \(error.localizedDescription)")
                 }
             }
+        
+        // Ghi đè recent msg cũ
         let recentMsgData: [String: Any] = [
             "text": text,
             "fromId": currentUid,

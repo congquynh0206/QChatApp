@@ -24,7 +24,7 @@ class NewMessageViewModel: ObservableObject {
         // Lên Firestore lấy toàn bộ bảng "users"
         Firestore.firestore().collection("users").getDocuments { snapshot, error in
             if let error = error {
-                print("Error get list user: \(error.localizedDescription)")
+                print("NewMessageViewModel_1: \(error.localizedDescription)")
                 return
             }
             
