@@ -12,6 +12,7 @@ import FirebaseFirestore
 class AuthViewModel : ObservableObject{
     @Published var userSession: FirebaseAuth.User?
     @Published var currentUser: User?
+    @Published var isLogging = false
     init(){
         //self.userSession = Auth.auth().currentUser
         Task{
@@ -27,11 +28,13 @@ class AuthViewModel : ObservableObject{
     
     //Login
     func login (email: String, password: String) async throws{
+        isLogging = true
         do{
             let result = try await Auth.auth().signIn(withEmail: email, password: password)
             if !result.user.isEmailVerified {
                 // Nếu chưa thì đăng xuất
-                try await Auth.auth().signOut()
+                try logOut()
+                isLogging = false
                 // Ném ra lỗi để bên View hiện thông báo
                 throw NSError(domain: "AppError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Please verify your email address before logging in."])
             }
@@ -39,6 +42,7 @@ class AuthViewModel : ObservableObject{
             
             await fetchUser()
         }catch{
+            isLogging = false
             print("Lỗi: \(error.localizedDescription)")
             throw error
         }
@@ -70,6 +74,7 @@ class AuthViewModel : ObservableObject{
     
     // Logout
     func logOut() throws{
+        isLogging = false
         do{
             try  Auth.auth().signOut()
             self.currentUser = nil

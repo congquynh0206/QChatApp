@@ -34,7 +34,7 @@ struct LoginView : View {
                     }
                 }
                 .padding(.trailing, 5)
-                Button{
+                CustomButton(title: "Login", isValid: !email.isEmpty && !password.isEmpty){
                     Task{
                         do{
                             try await viewModel.login(email: email, password: password)
@@ -44,16 +44,7 @@ struct LoginView : View {
                             password = ""
                         }
                     }
-                }label: {
-                    Text("Login")
-                        .foregroundColor(.white)
-                        .frame(width: 200, height: 25)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(10)
                 }
-                .padding(.top, 15)
-                .disabled(email.isEmpty || password.isEmpty)
                 
                 NavigationLink{
                     RegisterView()
@@ -73,39 +64,12 @@ struct LoginView : View {
             }.padding()
                 .padding(.bottom,50)
         }
+        .showLoading(viewModel.isLogging, message: "Logging...")
     }
 }
-struct CustomTextField: View {
-    var placeholder: String
-    @Binding var text: String
-    var systemIcon: String? = nil
-    var secret: Bool = false
-    
-    var body: some View {
-        HStack {
-            // Nếu có icon thì hiển thị
-            if let icon = systemIcon {
-                Image(systemName: icon)
-                    .foregroundColor(.gray)
-                    .frame(width: 20)
-            }
-            if secret {
-                SecureField(placeholder, text: $text)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-            } else {
-                TextField(placeholder, text: $text)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-}
+
 
 
 #Preview {
-    LoginView()
+    LoginView().environmentObject(AuthViewModel())
 }

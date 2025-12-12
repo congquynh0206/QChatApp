@@ -73,7 +73,7 @@ class RegisterViewModel: ObservableObject {
         && isValidEmail
         && !password.isEmpty
         && !name.isEmpty
-        && password == confirmPass
+        && passwordsMatch
         && password.count >= 6
     }
     

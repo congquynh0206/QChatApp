@@ -10,23 +10,75 @@ import FirebaseAuth
 
 struct ContentView: View {
     @StateObject var viewModel = ChatViewModel()
-    // Biến lưu nội dung đang gõ
+    @EnvironmentObject var authModel : AuthViewModel
+    
     @State private var text = ""
     
-    // Lấy ID người dùng hiện tại để phân biệt tin nhắn của mình hay của người khác
     private var currentUserId: String {
         return Auth.auth().currentUser?.uid ?? ""
     }
     
     var body: some View {
-        VStack {
-            Text("Nhóm Chat Chung")
-                .font(.title3)
-                .bold()
-                .padding()
+        VStack(spacing: 0) {
+            // Header
+            HStack(spacing: 15) {
+                // Avatar nhóm
+                ZStack {
+                    Circle()
+                        .fill(Color.blue.opacity(0.1))
+                        .frame(width: 50, height: 50)
+                    Image(systemName: "person.3.fill")
+                        .font(.system(size: 25))
+                        .foregroundColor(.blue)
+                }
+                
+                // Thông tin Nhóm
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Nhóm Chat Chung")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    // Trạng thái online
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 8, height: 8)
+                        Text("Online")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
+                
+                Spacer()
+                
+                // Logout button
+                Button {
+                    do {
+                        try authModel.logOut()
+                    } catch {
+                        print("Error: \(error.localizedDescription)")
+                    }
+                } label: {
+                    VStack(spacing: 2) {
+                        Image(systemName: "rectangle.portrait.and.arrow.right") // Icon thoát
+                            .font(.system(size: 18))
+                        Text("Log Out")
+                            .font(.caption2)
+                    }
+                    .foregroundColor(.red.opacity(0.8))
+                    .padding(8)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(8)
+                }
+            }
+            .padding()
+            .background(Color.white)
+            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 5) // Đổ bóng 
+            .zIndex(1) // Đảm bảo bóng đổ đè lên tin nhắn khi cuộn
             
-            // Dsach tin nhắn
-            ScrollViewReader { proxy in // Proxy giúp điều khiển việc cuộn
+            
+            // Danh sách tin nhắn
+            ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack {
                         ForEach(viewModel.messages) { message in
@@ -35,8 +87,7 @@ struct ContentView: View {
                     }
                     .padding()
                 }
-                // Tự động cuộn xuống dưới cùng khi có tin nhắn mới
-                .onChange(of: viewModel.messages.count) { _ in
+                .onChange(of: viewModel.messages.count) {
                     if let lastMessage = viewModel.messages.last {
                         withAnimation {
                             proxy.scrollTo(lastMessage.id, anchor: .bottom)
@@ -44,15 +95,16 @@ struct ContentView: View {
                     }
                 }
             }
+            // Màu nền cho vùng chat (hơi xám nhẹ để nổi bật header trắng)
+            .background(Color(.systemGray6).opacity(0.3))
             
-            //Thanh nhập
+            // Thanh nhập liệu
             HStack {
-                TextField("Nhập tin nhắn...", text: $text)
+                TextField("Enter message...", text: $text)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .frame(minHeight: 30)
+                    .frame(minHeight: 40)
                 
                 Button {
-                    // Logic gửi tin nhắn
                     if !text.isEmpty {
                         viewModel.sendMessage(text: text)
                         text = ""
@@ -61,54 +113,72 @@ struct ContentView: View {
                     Image(systemName: "paperplane.fill")
                         .font(.system(size: 22))
                         .foregroundColor(.blue)
+                        .padding(8)
                 }
             }
             .padding()
-            .background(Color(.systemGray6)) // Màu nền xám nhẹ cho thanh nhập
+            .background(Color(.systemGray5))
+            .overlay(alignment: .top) {
+                Divider()
+            }
         }
     }
 }
 
 
-// Giao diện của 1 dòng tin nhăn
 struct MessageRow: View {
     let message: Message
     let isMe: Bool
     
     var body: some View {
-        HStack {
-            if isMe { Spacer() } // Nếu là tôi: Đẩy sang phải
+        HStack() {
+            if isMe { Spacer() }
             
-            VStack(alignment: isMe ? .trailing : .leading) {
-                
-                // Nếu không phải mình thì hiện tên
-                if !isMe{
-                    Text("\(message.userName)")
-                        .font(.caption2)
+            // Avatar chỉ hiện cho người khác (bên trái)
+            if !isMe {
+                Circle()
+                    .fill(Color.blue.opacity(0.8))
+                    .frame(width: 35, height: 35)
+                    .overlay(
+                        Text(message.userName.prefix(1).uppercased()) // Lấy chữ cái đầu của tên
+                            .font(.caption)
+                            .bold()
+                            .foregroundColor(.white)
+                    )
+            }
+            
+            VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
+                if !isMe {
+                    Text(message.userName)
+                        .font(.caption)
                         .foregroundColor(.gray)
+                        .padding(.leading, 5)
                 }
+                
                 Text(message.text)
-                    .padding(10)
+                    .padding(12)
                     .foregroundColor(isMe ? .white : .black)
                     .background(isMe ? Color.blue : Color(.systemGray5))
-                    .cornerRadius(10)
+                    // Bo góc: Nếu là mình thì nhọn góc phải dưới, người khác thì nhọn góc trái dưới
+                    .clipShape(
+                        RoundedRectangle(cornerRadius: 16)
+                    )
                 
-                // Hiển thị giờ
                 Text("\(message.timestamp.formatted(.dateTime.hour().minute()))")
                     .font(.caption2)
                     .foregroundColor(.gray)
+                    .padding(.horizontal, 4)
             }
             
-            if !isMe { Spacer() } // Nếu là mình thì Đẩy sang trái
+            if !isMe { Spacer() }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 2)
-        .id(message.id) // Gắn ID để ScrollViewReader biết đường mà cuộn tới
+        .padding(.vertical, 5)
+        .id(message.id)
     }
 }
-
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        ContentView().environmentObject(AuthViewModel())
     }
 }

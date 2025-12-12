@@ -65,26 +65,11 @@ struct RegisterView: View {
                     }
                 
                 // Register button
-                Button {
+                CustomButton(title: "Register", isValid: viewModel.isFormValid){
                     Task {
                         await viewModel.registerUser(authViewModel: authViewModel)
                     }
-                } label: {
-                    if viewModel.isLoading {
-                        ProgressView() // loading
-                            .tint(.white)
-                    } else {
-                        Text("Register")
-                            .bold()
-                    }
                 }
-                .foregroundColor(.white)
-                .frame(width: 200, height: 25)
-                .padding()
-                .background(Color.blue)
-                .cornerRadius(10)
-                .disabled(!viewModel.isFormValid)
-                .opacity(viewModel.isFormValid ? 1: 0.6)
                 
                 
                 Button {
@@ -97,11 +82,12 @@ struct RegisterView: View {
                     .font(.footnote)
                     .foregroundColor(.blue)
                 }
+                .contentShape(Rectangle())
             }
             .padding()
             
         }
-        // 1. Alert Thành công
+        // Alert Thành công
         .alert("Success", isPresented: $viewModel.showSuccessAlert) {
             Button("OK") {
                 dismiss()
@@ -110,14 +96,15 @@ struct RegisterView: View {
             Text("Account created successfully! We have sent a verification email to \(viewModel.email). Please check your inbox and verify your email before logging in.")
         }
         
-        // 2. Alert Lỗi
+        // Alert Lỗi
         .alert("Error", isPresented: $viewModel.showError) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(viewModel.errorMessage)
         }
-        
+        .showLoading(viewModel.isLoading, message: "Creating Account...")
     }
+    
 }
 
 

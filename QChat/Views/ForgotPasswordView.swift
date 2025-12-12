@@ -47,25 +47,11 @@ struct ForgotPasswordView: View {
                 .keyboardType(.emailAddress)
             
             // Button
-            Button {
+            CustomButton(title: "Send Reset Link", isValid: !email.isEmpty){
                 Task {
                     await sendResetLink()
                 }
-            } label: {
-                if isLoading {
-                    ProgressView().tint(.white)
-                } else {
-                    Text("Send Reset Link")
-                        .bold()
-                }
             }
-            .foregroundColor(.white)
-            .frame(width: 200, height: 25)
-            .padding()
-            .background(Color.blue)
-            .cornerRadius(10)
-            .disabled(email.isEmpty || isLoading)
-            .opacity(email.isEmpty ? 0.6 : 1)
             
             Spacer()
         }
@@ -78,7 +64,7 @@ struct ForgotPasswordView: View {
             }
         } message: {
             Text(alertMessage)
-        }
+        }.showLoading(isLoading, message: "Sending...")
     }
     
     // Logic gọi sang ViewModel
