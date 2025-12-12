@@ -13,7 +13,6 @@ struct LoadingView: View {
     var body: some View {
         ZStack {
             // Lớp nền màu đen mờ
-            // Làm tối màn hình và chặn người dùng bấm nút khác
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
             

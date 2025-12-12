@@ -27,7 +27,7 @@ struct QChatApp: App {
     var body: some Scene {
         WindowGroup {
             if authViewModel.userSession != nil {
-                ContentView().environmentObject(authViewModel)
+                MainTabView().environmentObject(authViewModel)
             }else{
                 LoginView().environmentObject(authViewModel)
             }
