@@ -8,6 +8,7 @@
 import SwiftUI
 struct MainTabView : View {
     @State var selectedTab = 0
+    @AppStorage("isDarkMode") private var isDarkMode = false
     var body: some View {
         TabView(selection: $selectedTab){
             ListChatView()
@@ -23,6 +24,7 @@ struct MainTabView : View {
                 }
                 .tag(1)
         }.accentColor(Color.blue)
+            .preferredColorScheme(isDarkMode ? .dark : .light)
             
     }
 }

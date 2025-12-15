@@ -14,15 +14,32 @@ class AuthViewModel : ObservableObject{
     @Published var currentUser: User?
     @Published var isLogging = false
     init(){
-        //self.userSession = Auth.auth().currentUser
+        self.userSession = Auth.auth().currentUser
         Task{
             await fetchUser()
         }
     }
-    func fetchUser() async{
-        guard let userId = Auth.auth().currentUser?.uid else {return }
-        guard let snapshot = try? await Firestore .firestore().collection("users").document(userId).getDocument() else {return}
-        guard let data = snapshot.data() else {return}
+    func fetchUser() async {
+        guard let authUser = Auth.auth().currentUser else { return }
+        let userId = authUser.uid
+        let authEmail = authUser.email ?? ""
+        
+        // 2. Lấy dữ liệu từ Firestore
+        guard let snapshot = try? await Firestore.firestore().collection("users").document(userId).getDocument(),
+              var data = snapshot.data() else { return }
+        
+        // Kiểm tra xem email trong Firestore có khớp với Auth không
+        if let firestoreEmail = data["email"] as? String,
+           firestoreEmail != authEmail {
+            // Đồng bộ firestore theo auth
+            try? await Firestore.firestore().collection("users").document(userId).updateData([
+                "email": authEmail
+            ])
+            
+            data["email"] = authEmail
+        }
+        
+        // 4. Gán vào biến currentUser
         self.currentUser = User(dictionary: data)
     }
     
@@ -84,4 +101,61 @@ class AuthViewModel : ObservableObject{
             throw error
         }
     }
+    
+    // Change Pass
+    func updatePassword(oldPass: String, newPass: String) async throws {
+        // Kiểm tra user hiện tại
+        guard let user = Auth.auth().currentUser,
+              let email = user.email else {
+            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not found user."])
+        }
+        
+        // Tạo Credential từ mật khẩu cũ để kiểm tra
+        let credential = EmailAuthProvider.credential(withEmail: email, password: oldPass)
+
+        // Re-authen, nếu sai thì sẽ throw lỗi ngay, ko update đc
+        try await user.reauthenticate(with: credential)
+
+        // Nếu re-authen đc thì cập nhật pass
+        try await user.updatePassword(to: newPass)
+        
+    }
+    
+    // Update information
+    func updateInformation(username: String, newEmail: String) async throws {
+            guard let user = Auth.auth().currentUser else {
+                throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not logged in."])
+            }
+            
+            // Update Username
+            if username != self.currentUser?.username {
+                try await Firestore.firestore().collection("users").document(user.uid).updateData(["username": username])
+            }
+            
+            // Update Email
+            if newEmail != user.email {
+                
+                // Check trùng trong Firestore trước
+                let querySnapshot = try await Firestore.firestore()
+                    .collection("users")
+                    .whereField("email", isEqualTo: newEmail)
+                    .getDocuments()
+                
+                if !querySnapshot.documents.isEmpty {
+                     throw NSError(domain: "AppError", code: 409, userInfo: [NSLocalizedDescriptionKey: "This email already existed"])
+                }
+
+                try await user.sendEmailVerification(beforeUpdatingEmail: newEmail)
+                
+                
+                // Cập nhật Firestore (Hiển thị email mới luôn)
+                try await Firestore.firestore().collection("users").document(user.uid).updateData(["email": newEmail])
+                
+                try logOut()
+                
+                throw NSError(domain: "Auth", code: 100, userInfo: [NSLocalizedDescriptionKey: "The verification email has been sent to \(newEmail). Please check your inbox and click confirm to complete the process."])
+            }
+            
+            await fetchUser()
+        }
 }

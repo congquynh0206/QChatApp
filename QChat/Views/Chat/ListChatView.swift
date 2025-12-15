@@ -77,7 +77,8 @@ struct ListChatView: View {
                         }
                       }
                 }
-                .navigationTitle("Message")
+                .navigationTitle("Message").font(.system(size: 30))
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     // Button tạo tin nhắn mới
                     ToolbarItem(placement: .navigationBarTrailing) {

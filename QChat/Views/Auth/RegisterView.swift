@@ -40,19 +40,7 @@ struct RegisterView: View {
                     }
                 
                 // Password strength
-                if !viewModel.password.isEmpty {
-                    VStack(alignment: .leading, spacing: 5) {
-                        ProgressView(value: viewModel.passwordStrengthScore, total: 4)
-                            .accentColor(viewModel.strengthColor)
-                            .scaleEffect(x: 1, y: 2, anchor: .center)
-                            .clipShape(RoundedRectangle(cornerRadius: 5))
-                        
-                        Text(viewModel.strengthLabel)
-                            .font(.caption)
-                            .foregroundColor(viewModel.strengthColor)
-                    }
-                    .padding(.horizontal)
-                }
+                PasswordStrengthView(password: viewModel.password)
                 
                 // Confirm pass
                 CustomTextField(placeholder: "Confirm Password", text: $viewModel.confirmPass, systemIcon: "lock", secret: true)
