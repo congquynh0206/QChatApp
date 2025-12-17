@@ -23,6 +23,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct QChatApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject var authViewModel = AuthViewModel()
+    @Environment(\.scenePhase) var scenePhase
     
     var body: some Scene {
         WindowGroup {
@@ -30,6 +31,16 @@ struct QChatApp: App {
                 MainTabView().environmentObject(authViewModel)
             }else{
                 LoginView().environmentObject(authViewModel)
+            }
+        }.onChange(of: scenePhase) {
+            switch scenePhase {
+            case .active:
+                UserStatusService.shared.updateStatus(isOnline: true)
+            case .inactive, .background:
+                UserStatusService.shared.updateStatus(isOnline: false)
+                
+            @unknown default:
+                break
             }
         }
     }
