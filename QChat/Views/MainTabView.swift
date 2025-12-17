@@ -11,7 +11,7 @@ struct MainTabView : View {
     @AppStorage("isDarkMode") private var isDarkMode = false
     var body: some View {
         TabView(selection: $selectedTab){
-            ListChatView()
+            ListChatView(selectedTab: $selectedTab)
                 .tabItem {
                     Image(systemName: "bubble.left.and.bubble.right.fill")
                     Text("Chats")

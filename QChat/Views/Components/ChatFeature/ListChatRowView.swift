@@ -14,19 +14,24 @@ struct ListChatRowView: View {
     var time: String
     var isGroup: Bool = false
     
+    var user: User? = nil
+    
     var body: some View {
         HStack(spacing: 15) {
             // Avatar
-            ZStack {
-                Circle()
-                    .fill(isGroup ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
-                    .frame(width: 60, height: 60)
-                
-                Text(avatarName.prefix(1).uppercased())
-                    .font(.title3)
-                    .bold()
-                    .foregroundColor(isGroup ? .blue : .gray)
+            if isGroup {
+                ZStack {
+                    Circle()
+                        .fill(Color.blue.opacity(0.1))
+                        .frame(width: 50, height: 50)
+                    Image(systemName: "person.3.fill")
+                        .font(.system(size: 25))
+                        .foregroundColor(.blue)
+                }
+            }else{
+                AvatarView(user: user, size: 50)
             }
+            
             
             // Nội dung
             VStack(alignment: .leading, spacing: 5) {

@@ -158,4 +158,20 @@ class AuthViewModel : ObservableObject{
             
             await fetchUser()
         }
+    // Hàm cập nhật Avatar bằng tên ảnh có sẵn
+    func updateAvatar(iconName: String) {
+        guard let uid = self.userSession?.uid else { return }
+        Firestore.firestore().collection("users").document(uid).updateData([
+            "avatar": iconName
+        ]) { error in
+            if let error = error {
+                print("Lỗi lưu avatar: \(error.localizedDescription)")
+                return
+            }
+            DispatchQueue.main.async {
+                self.currentUser?.avatar = iconName
+            }
+            print("Đã đổi avatar thành công: \(iconName)")
+        }
+    }
 }

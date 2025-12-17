@@ -40,6 +40,7 @@ class ListChatViewModel: ObservableObject {
         firestoreListener?.remove()
     }
     
+    // Lấy các cuộc trò chuyện gần đây
     func fetchRecentMessages() {
         guard let currentUid = Auth.auth().currentUser?.uid else { return }
         isLoading = true
@@ -87,6 +88,63 @@ class ListChatViewModel: ObservableObject {
                     // Cập nhật lại vào mảng (trên Main Thread)
                     DispatchQueue.main.async {
                         self.recentMessages[index].user = user
+                    }
+                }
+            }
+        }
+    }
+    
+    // Xoá cuộc nói chuyện và lịch sử tin nhắn
+    
+    func deleteConversation(_ message: RecentMessage) {
+        guard let currentUid = Auth.auth().currentUser?.uid else { return }
+        let partnerId = message.chatPartnerId
+        
+        let db = Firestore.firestore()
+        let batch = db.batch()
+        
+        // Xác định ID của đoạn chat trong collection "chats"
+        let conversationId = ChatService.getChatId(fromId: currentUid, toId: partnerId)
+        
+        // Xoá trong List Recent để cập nhật UI
+        let recentRef = db.collection("recent_messages")
+            .document(currentUid)
+            .collection("messages")
+            .document(partnerId)
+        
+        batch.deleteDocument(recentRef)
+        
+        // Xoá lịch sử tin nhắn
+        let messagesRef = db.collection("chats")
+            .document(conversationId)
+            .collection("messages")
+        
+        // Vì xoá sub-collection phải xoá từng document bên trong
+        messagesRef.getDocuments { snapshot, error in
+            if let error = error {
+                print("ListChatViewModel_2: \(error)")
+                return
+            }
+            
+            // Đưa tất cả lệnh xoá tin nhắn con vào batch - batch là gom nhiều lệnh vào rồi chạy 1 thể
+            snapshot?.documents.forEach { doc in
+                batch.deleteDocument(doc.reference)
+            }
+            
+            // Xoá luôn cái vỏ document của đoạn chat
+            let conversationRef = db.collection("chats").document(conversationId)
+            batch.deleteDocument(conversationRef)
+            
+            // Thực thi tất cả lệnh xoá - commit batch
+            batch.commit { error in
+                if let error = error {
+                    print("ListChatViewModel_3: \(error.localizedDescription)")
+                } else {
+                    print("Đã xoá sạch cả Recent và History trong Chats!")
+                    
+                    // Cập nhật UI
+                    DispatchQueue.main.async {
+                        self.recentMessages.removeAll { $0.id == message.id }
                     }
                 }
             }

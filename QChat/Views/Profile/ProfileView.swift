@@ -35,6 +35,11 @@ struct ProfileView: View {
     @AppStorage("isDarkMode") private var isDarkMode = false
     
     @State private var path = NavigationPath()
+    @State private var showAvatarSelection = false
+    
+    let avatarList = [
+        "avatar-1", "avatar-2", "avatar-3","avatar-4","avatar-5","avatar-6"
+    ]
     
     // Cấu hình lưới 2 cột
     let columns = [
@@ -59,7 +64,9 @@ struct ProfileView: View {
         NavigationStack (path: $path){
             ScrollView {
                 VStack(spacing: 0) {
-                    HeaderProfileView(user: authViewModel.currentUser)
+                    HeaderProfileView(user: authViewModel.currentUser) {
+                        showAvatarSelection = true
+                    }
                     
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(options) { option in
@@ -91,6 +98,11 @@ struct ProfileView: View {
                 case .notification:
                     Text("Noti View")
                 }
+            }
+            .sheet(isPresented: $showAvatarSelection){
+                ChooseAvatarView(showAvatarSelection: $showAvatarSelection, avatarList: avatarList)
+                    .presentationDetents([.medium]) // Hiện 1 nửa màn
+                        .presentationDragIndicator(.visible)
             }
         }
     }
@@ -125,93 +137,8 @@ struct ProfileView: View {
     
 }
 
-// View con hiển thị phần Header Avatar
-struct HeaderProfileView: View {
-    let user: User?
-    
-    var body: some View {
-        ZStack(alignment: .top) {
-            // Nền xanh phía sau
-            Color.blue
-                .frame(height: 120)
-            
-            VStack(spacing: 12) {
-                // Avatar
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 100, height: 100)
-                    .overlay(
-                        Text(user?.username.prefix(1).uppercased() ?? "U")
-                            .font(.system(size: 40, weight: .bold))
-                            .foregroundColor(.blue)
-                    )
-                    .shadow(radius: 5, y: 3)
-                
-                // Tên và Email
-                VStack(spacing: 4) {
-                    Text(user?.username ?? "Unknown")
-                        .font(.title2)
-                        .bold()
-                        .foregroundColor(.black)
-                    
-                    Text(user?.email ?? "No Email")
-                        .font(.subheadline)
-                        .foregroundColor(.black)
-                }
-                .padding(.bottom, 20)
-            }
-            .offset(y: 60)
-        }
-        .padding(.bottom, 40)
-    }
-}
 
-// View con hiển thị từng ô chức năng
-
-struct ProfileOptionCard: View {
-    let option: ProfileOption
-    @Binding var toggleParams: Bool // Binding để điều khiển toggle
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                // Icon
-                Circle()
-                    .fill(option.color.opacity(0.1))
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Image(systemName: option.iconName)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(option.color)
-                    )
-                
-                Spacer()
-                
-                // Nếu là dạng Toggle thì hiện switch
-                if option.type == .toggle {
-                    Toggle("", isOn: $toggleParams)
-                        .labelsHidden()
-                        .scaleEffect(0.8) // Thu nhỏ toggle một chút cho vừa card
-                }
-            }
-            
-            Text(option.title)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.primary)
-                .lineLimit(2)
-            
-            Spacer(minLength: 0)
-        }
-        .padding(16)
-        .frame(height: 110)
-        .background(Color("CardBackground"))
-        .background(Color(uiColor: .secondarySystemGroupedBackground)) // Tự động đổi màu theo theme hệ thống
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-    }
-}
-
-#Preview {
-    ProfileView()
-        .environmentObject(AuthViewModel())
-}
+//#Preview {
+//    ProfileView()
+//        .environmentObject(AuthViewModel())
+//}

@@ -52,15 +52,7 @@ struct NewMessageView: View {
                         } label: {
                             HStack(spacing: 15) {
                                 // Avatar tròn
-                                Circle()
-                                    .frame(width: 50, height: 50)
-                                    .foregroundColor(Color.blue.opacity(0.8))
-                                    .overlay(
-                                        Text(user.username.prefix(1).uppercased())
-                                            .font(.title3)
-                                            .bold()
-                                            .foregroundColor(.white)
-                                    )
+                                AvatarView(user: user, size: 50)
                                 
                                 Text(user.username)
                                     .font(.headline)
@@ -75,13 +67,13 @@ struct NewMessageView: View {
                 }
             }
             .navigationTitle("New Message")
-            .navigationBarTitleDisplayMode(.inline) // Tiêu đề nhỏ gọn ở giữa
+            .navigationBarTitleDisplayMode(.inline) 
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.black)
+                    .foregroundColor(.blue)
                 }
             }
         }

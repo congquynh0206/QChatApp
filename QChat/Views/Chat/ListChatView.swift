@@ -8,7 +8,9 @@
 import SwiftUI
 
 struct ListChatView: View {
+    @Binding var selectedTab : Int
     @StateObject var viewModel = ListChatViewModel()
+    @EnvironmentObject var authViewModel : AuthViewModel
     
     // Biến để quản lý điều hướng
     @State private var showNewMessage = false
@@ -30,15 +32,16 @@ struct ListChatView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                // Search bar
-                SearchBar(text: $searchText, placeholder: "Search")
-                    .padding(.horizontal)
-                    .padding(.bottom, 10)
-                
-                LazyVStack {
+            List {
+                Section {
+                    SearchBar(text: $searchText, placeholder: "Search")
+                        .padding(.bottom, 10)
+                        .listRowSeparator(.hidden) // Ẩn dòng kẻ
+                        .listRowInsets(EdgeInsets()) // Bỏ padding mặc định của List
+                        .padding(.horizontal)
+                        .padding(.top, 10)
+                    
                     if searchText.isEmpty {
-                        // Chat chung
                         NavigationLink {
                             GroupChatView()
                                 .toolbar(.hidden, for: .tabBar)
@@ -50,67 +53,91 @@ struct ListChatView: View {
                                 time: "Now",
                                 isGroup: true
                             )
-                            .padding(.horizontal)
                         }
+                        .listRowSeparator(.hidden)
                     }
-                    
-                        // Chat riêng
+                }
+                
+                Section {
                     ForEach(filteredMessages) { message in
-                        NavigationLink {
-                            let targetUser = message.user ?? User(
-                                id: message.chatPartnerId,
-                                email: "",
-                                username: message.user?.username ?? "Loading...",
-                                avatar: nil
-                            )
+                        ZStack {
+                            NavigationLink {
+                                let targetUser = message.user ?? User(
+                                    id: message.chatPartnerId,
+                                    email: "",
+                                    username: message.user?.username ?? "Loading...",
+                                    avatar: message.user?.avatar ?? nil
+                                )
+                                PrivateChatView(user: targetUser)
+                            } label: {
+                                EmptyView()
+                            }
+                            .opacity(0) // Ẩn link đi nhưng vẫn bấm được
                             
-                            PrivateChatView(user: targetUser)
-                        } label: {
                             ListChatRowView(
-                                avatarName: message.user?.username ?? "U", // Lấy tên từ User đã load
+                                avatarName: message.user?.username ?? "U",
                                 name: message.user?.username ?? "Loading...",
                                 lastMessage: message.text,
                                 time: message.timestamp.formatted(.dateTime.hour().minute()),
-                                isGroup: false
+                                isGroup: false,
+                                user: message.user
                             )
-                            .padding(.horizontal)
                         }
-                      }
+                        .listRowSeparator(.hidden)
+                        
+                    }
+                    .onDelete(perform: deleteMessage)
                 }
-                .navigationTitle("Message").font(.system(size: 30))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    // Button tạo tin nhắn mới
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            showNewMessage.toggle()
-                        } label: {
-                            Image(systemName: "square.and.pencil")
-                                .font(.system(size: 20))
-                                .foregroundColor(.blue)
-                        }
+            }
+            .listStyle(.plain)
+            .navigationTitle("Message")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showNewMessage.toggle()
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                            .font(.system(size: 20))
+                            .foregroundColor(.blue)
                     }
                 }
-                
-                // Navigate, tạo tin nhắn mới
-                .fullScreenCover(isPresented: $showNewMessage) {
-                    NewMessageView { user in
-                        self.selectedUser = user
-                        self.showChat = true // Kích hoạt chuyển trang
+                ToolbarItem(placement: .navigationBarLeading){
+                    Button{
+                        selectedTab = 1
+                    }label:{
+                        AvatarView(user: authViewModel.currentUser, size: 40)
                     }
                 }
-                
-                // Chat Riêng
-                .navigationDestination(isPresented: $showChat) {
-                    if let user = selectedUser {
-                        PrivateChatView(user: user)
-                    }
+            }
+            .fullScreenCover(isPresented: $showNewMessage) {
+                NewMessageView { user in
+                    self.selectedUser = user
+                    self.showChat = true
+                }
+            }
+            .navigationDestination(isPresented: $showChat) {
+                if let user = selectedUser {
+                    PrivateChatView(user: user)
                 }
             }
         }
     }
+    func deleteMessage(at offsets: IndexSet) {
+        // Duyệt các index
+        offsets.forEach { index in
+            // Phải dùng filteredMessages vì nếu người dùng đang Search, vị trí sẽ khác danh sách gốc
+            let messageToDelete = filteredMessages[index]
+            
+            // Gọi ViewModel để xoá trên Server
+            viewModel.deleteConversation(messageToDelete)
+        }
+        // viewModel.recentMessages.remove(atOffsets: offsets)
+    }
 }
 
-#Preview {
-    ListChatView()
-}
+
+
+//#Preview {
+//    ListChatView(selectedTab: .constant(0))
+//}

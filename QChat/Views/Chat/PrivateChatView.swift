@@ -24,8 +24,8 @@ struct PrivateChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack {
-                        ForEach(viewModel.messages) { message in
-                            MessageRow(message: message, isMe: message.userId == currentUserId)
+                        ForEach(viewModel.messages) {message in
+                            MessageRow(message: message, isMe: message.userId == currentUserId, user: viewModel.user)
                         }
                     }
                     .padding()
@@ -40,14 +40,25 @@ struct PrivateChatView: View {
             }
             
             // Thanh nhập tin nhắn
-            InputMessageView(text: $viewModel.text) {
-                viewModel.sendMessage()
-            }
+            InputMessageView(
+                text: $viewModel.text,
+                onSend: {
+                    viewModel.sendTextMessage()
+                },
+                onSendSticker: { stickerName in
+                    viewModel.sendSticker(stickerName: stickerName)
+                },
+                onSendImage: { name, width, height in
+                    viewModel.sendImage(name: name, width: width, height: height)
+                }
+            )
         }
         // Tiêu đề là tên người mình đang chat
         .navigationTitle(viewModel.user.username)
         .navigationBarTitleDisplayMode(.inline)
         // Ẩn TabBar khi vào chat riêng
         .toolbar(.hidden, for: .tabBar)
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }

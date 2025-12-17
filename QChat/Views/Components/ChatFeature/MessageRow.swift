@@ -9,6 +9,8 @@ import SwiftUI
 struct MessageRow: View {
     let message: Message
     let isMe: Bool
+    @State private var showViewer = false
+    var user : User?
     
     var body: some View {
         HStack() {
@@ -16,15 +18,7 @@ struct MessageRow: View {
             
             // Avatar chỉ hiện cho người khác (bên trái)
             if !isMe {
-                Circle()
-                    .fill(Color.blue.opacity(0.8))
-                    .frame(width: 35, height: 35)
-                    .overlay(
-                        Text(message.userName.prefix(1).uppercased()) // Lấy chữ cái đầu của tên
-                            .font(.caption)
-                            .bold()
-                            .foregroundColor(.white)
-                    )
+                AvatarView(user: user, size: 35)
             }
             
             VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
@@ -35,14 +29,34 @@ struct MessageRow: View {
                         .padding(.leading, 5)
                 }
                 
-                Text(message.text)
-                    .padding(12)
-                    .foregroundColor(isMe ? .white : .black)
-                    .background(isMe ? Color.blue : Color(.systemGray5))
-                // Bo góc: Nếu là mình thì nhọn góc phải dưới, người khác thì nhọn góc trái dưới
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 16)
-                    )
+                switch message.type {
+                case .text:
+                    Text(message.text)
+                        .padding(12)
+                        .background(isMe ? Color.blue : Color(.systemGray5))
+                        .foregroundColor(isMe ? .white : .primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    
+                case .sticker:
+                    Image(message.text)
+                        .resizable().scaledToFit().frame(width: 100)
+                    
+                case .image:
+                    //Hiển thị ảnh
+                    Button {
+                        showViewer = true
+                    } label: {
+                        Image(message.text)
+                            .resizable()
+                            .scaledToFill() // Fill đầy khung
+                            .frame(
+                                width: 200,
+                                height: calculateHeight(maxWidth: 200)
+                            )
+                            .cornerRadius(16)
+                            .clipped()
+                    }
+                }
                 
                 Text("\(message.timestamp.formatted(.dateTime.hour().minute()))")
                     .font(.caption2)
@@ -55,5 +69,15 @@ struct MessageRow: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .id(message.id)
+        .fullScreenCover(isPresented: $showViewer) {
+            ImageViewer(imageName: message.text, isShowing: $showViewer)
+        }
     }
+    // Hàm tính chiều cao
+        func calculateHeight(maxWidth: CGFloat) -> CGFloat {
+            guard let w = message.photoWidth, let h = message.photoHeight, w > 0 else {
+                return 150 // Mặc định nếu lỗi
+            }
+            return (h / w) * maxWidth
+        }
 }

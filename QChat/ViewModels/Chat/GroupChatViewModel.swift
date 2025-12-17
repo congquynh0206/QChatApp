@@ -11,8 +11,9 @@ import FirebaseAuth
 
 class ChatViewModel: ObservableObject {
     @Published var messages: [Message] = []
-    
+    @Published var text: String = ""
     @Published var currentUserName: String = "Unknown"
+    @Published var currentUserAvatarUrl: String = ""
     
     // Khởi tạo database
     private let db = Firestore.firestore()
@@ -23,26 +24,28 @@ class ChatViewModel: ObservableObject {
     }
     
     func fetchCurrentUserProfile() {
-            // Lấy ID người dùng đang đăng nhập
-            guard let uid = Auth.auth().currentUser?.uid else { return }
+        // Lấy ID người dùng đang đăng nhập
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        // Tìm tên trong bảng user
+        db.collection("users").document(uid).getDocument { snapshot, error in
+            if let error = error {
+                print("GroupChatViewModel_1: \(error.localizedDescription)")
+                return
+            }
             
-            // Tìm tên trong bảng user
-            db.collection("users").document(uid).getDocument { snapshot, error in
-                if let error = error {
-                    print("ChatViewModel - FetchProfile: \(error.localizedDescription)")
-                    return
-                }
+            // Lấy dữ liệu về
+            if let data = snapshot?.data() {
+                let name = data["username"] as? String ?? "Unknown"
+                let avatarUrl = data["avatar"] as? String ?? ""
                 
-                // Lấy dữ liệu về
-                if let data = snapshot?.data(),
-                   let name = data["username"] as? String {
-                    // Lưu vào biến để tí nữa dùng gửi tin nhắn
-                    DispatchQueue.main.async {
-                        self.currentUserName = name
-                    }
+                DispatchQueue.main.async {
+                    self.currentUserName = name
+                    self.currentUserAvatarUrl = avatarUrl // Lưu vào biến
                 }
             }
         }
+    }
     
     // Hàm Lấy tin nhắn (Real-time)
     func fetchMessages() {
@@ -63,34 +66,52 @@ class ChatViewModel: ObservableObject {
                     let data = document.data()
                     let id = document.documentID
                     let text = data["text"] as? String ?? ""
-                    let userName =  data["userName"] as? String ?? "Unknow"
                     let userId = data["userId"] as? String ?? ""
-                    // Xử lý thời gian (Timestamp của Firebase -> Date của Swift)
+                    let userName = data["userName"] as? String ?? "Unknown"
+                    let typeRaw = data["type"] as? String ?? "text"
+                    let type = MessageType(rawValue: typeRaw) ?? .text
+                    let pWidth = data["photoWidth"] as? CGFloat
+                    let pHeight = data["photoHeight"] as? CGFloat
                     let timestamp = (data["timestamp"] as? Timestamp)?.dateValue() ?? Date()
+                    let userAvatarUrl = data["userAvatarUrl"] as? String ?? ""
                     
-                    return Message(id: id, text: text, userId: userId,userName: userName ,timestamp: timestamp)
+                    return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp, userAvatarUrl: userAvatarUrl)
                 }
             }
     }
     
-    // Hàm Gửi tin nhắn
-    func sendMessage(text: String) {
+    // Hàm gửi Text
+    func sendTextMessage() {
+        guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        performSendMessage(content: text, type: "text")
+        self.text = ""
+    }
+    
+    // Hàm gửi Sticker
+    func sendSticker(stickerName: String) {
+        performSendMessage(content: stickerName, type: "sticker")
+    }
+    // Hàm gửi ảnh
+    func sendImage(name: String, width: CGFloat, height: CGFloat){
+        performSendMessage(content: name, type: "image", width: width, height: height)
+    }
+    
+    // Hàm xử lý chung
+    private func performSendMessage(content: String, type: String, width: CGFloat = 0, height: CGFloat = 0) {
         guard let currentUserID = Auth.auth().currentUser?.uid else { return }
         
         let data: [String: Any] = [
-            "text": text,
+            "text": content,
+            "type": type,
+            "photoWidth": width,
+            "photoHeight": height,
             "userId": currentUserID,
-            "userName": self.currentUserName,
+            "userName": currentUserName,
+            "userAvatarUrl": self.currentUserAvatarUrl,
             "timestamp": Timestamp(date: Date())
+            
         ]
         
-        // Đẩy lên Firebase
-        db.collection("messages").addDocument(data: data) { error in
-            if let error = error {
-                print("ChatViewModel - Send mess: \(error.localizedDescription)")
-            } else {
-                print("Sended: \(text)")
-            }
-        }
+        db.collection("messages").addDocument(data: data)
     }
 }

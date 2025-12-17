@@ -9,40 +9,149 @@ import SwiftUI
 
 struct InputMessageView: View {
     @Binding var text: String
-    var placeholder: String = "Enter message"
+    @State var showStickerPicker = false
+    @State var showImagePicker = false
+    @FocusState var isFocus: Bool
     
-    // Hành động khi bấm nút gửi
+    var placeholder: String = "Enter message"
     var onSend: () -> Void
+    var onSendSticker: (String) -> Void
+    var onSendImage:(String, CGFloat, CGFloat) -> Void
+    
+    // Danh sách Emoji
+    let stickers : [String] = (1...5).map {"sticker-\($0)"}
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Ô nhập liệu
-            TextField(placeholder, text: $text)
-                .textFieldStyle(PlainTextFieldStyle())
-                .padding(12)
-                .background(Color(.systemGray6))
-                .cornerRadius(20)
-                .frame(minHeight: 40)
-            
-            // Nút gửi
-            Button(action: {
-                if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    onSend()
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                // Bật tắt Image
+                Button(action: {
+                    toggleImagePicker()
+                }) {
+                    Image(systemName: "photo")
+                        .font(.system(size: 22))
+                        .foregroundColor(showImagePicker ? .blue : .gray)
+                        .padding(8)
                 }
-            }) {
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 22))
-                    .foregroundColor(text.isEmpty ? .gray : .blue) //
-                    .padding(8)
+                
+                HStack(spacing: 10) {
+                    TextField(placeholder, text: $text)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .focused($isFocus) // Gắn focus
+                        .frame(minHeight: 40)
+                    // Bật tắt Sticker
+                    Button {
+                        toggleStickerPicker()
+                    } label: {
+                        // Giữ nguyên icon như bạn yêu cầu
+                        Image(systemName: showStickerPicker ? "keyboard" : "face.smiling")
+                            .font(.system(size: 22))
+                            .foregroundColor(.blue)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(Color(.systemGray3))
+                .cornerRadius(20)
+                
+                // Nút Gửi
+                Button(action: {
+                    if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        onSend()
+                    }
+                }) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(text.isEmpty ? .gray : .blue)
+                        .padding(8)
+                }
+                .disabled(text.isEmpty)
             }
-            .disabled(text.isEmpty)
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+            .overlay(alignment: .top) {
+                Divider().background(Color(.systemGray4))
+            }
+            .background(.regularMaterial)
+            
+            // Show Sticker View
+            if showStickerPicker {
+                stickerPickerView
+            }
+            // Show Image View
+            if showImagePicker {
+                MockPhotoPicker { name, width, height in
+                    // Khi chọn ảnh xong -> Gửi luôn -> Ẩn picker
+                    onSendImage(name, width, height)
+                    showImagePicker = false
+                }
+            }
+            
         }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .background(Color.white)
-        .overlay(alignment: .top) {
-            Divider()
+        .onChange(of: isFocus) {
+            if isFocus {
+                withAnimation {
+                    showStickerPicker = false
+                    showImagePicker = false
+                }
+            }
         }
+    }
+    
+    // Logic bật tắt bảng Sticker
+    private func toggleStickerPicker() {
+        if showStickerPicker {
+            // Đang mở sticker bấm để chuyển về bàn phím
+            isFocus = true
+            showStickerPicker = false
+        } else {
+            // Đang ở bàn phím bấm để mở sticker
+            isFocus = false // Ẩn bàn phím
+            showImagePicker = false // Ẩn image
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation {
+                    showStickerPicker = true
+                }
+            }
+        }
+    }
+    // Logic bật tắt ImageView
+    private func toggleImagePicker() {
+        if showImagePicker {
+            // Đang mở image bấm để chuyển về bàn phím
+            isFocus = true
+            showImagePicker = false
+        } else {
+            // Đang ở bàn phím bấm để mở image
+            isFocus = false // Ẩn bàn phím
+            showStickerPicker = false // Ẩn sticker
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation {
+                    showImagePicker = true
+                }
+            }
+        }
+    }
+    
+    // Giao diện bảng Sticker
+    var stickerPickerView: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 20) {
+                ForEach(stickers, id: \.self) { stickerName in
+                    Button {
+                        onSendSticker(stickerName)
+                    } label: {
+                        Image(stickerName) // Load ảnh từ Assets
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 60) // Kích thước sticker
+                    }
+                }
+            }
+            .padding()
+        }
+        .frame(height: 250)
+        .background(Color(.systemGroupedBackground))
     }
 }
 
