@@ -84,7 +84,7 @@ struct PersonalInformationView: View {
             }.listRowBackground(Color.clear)
                 
         }
-        .navigationTitle("Personal Info")
+        .navigationTitle("Personal Infomation")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if let user = authViewModel.currentUser {
@@ -157,9 +157,9 @@ struct PersonalInformationView: View {
     }
 }
 
-#Preview {
-    NavigationStack {
-        PersonalInformationView()
-            .environmentObject(AuthViewModel())
-    }
-}
+//#Preview {
+//    NavigationStack {
+//        PersonalInformationView()
+//            .environmentObject(AuthViewModel())
+//    }
+//}

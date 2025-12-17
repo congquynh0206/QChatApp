@@ -20,14 +20,7 @@ struct ListChatRowView: View {
         HStack(spacing: 15) {
             // Avatar
             if isGroup {
-                ZStack {
-                    Circle()
-                        .fill(Color.blue.opacity(0.1))
-                        .frame(width: 50, height: 50)
-                    Image(systemName: "person.3.fill")
-                        .font(.system(size: 25))
-                        .foregroundColor(.blue)
-                }
+                GroupAvatarView()
             }else{
                 AvatarView(user: user, size: 50)
             }

@@ -36,6 +36,7 @@ struct ProfileView: View {
     
     @State private var path = NavigationPath()
     @State private var showAvatarSelection = false
+    @State private var showLogoutAlert = false
     
     let avatarList = [
         "avatar-1", "avatar-2", "avatar-3","avatar-4","avatar-5","avatar-6"
@@ -49,7 +50,7 @@ struct ProfileView: View {
     
     // Danh sách các tính năng
     let options: [ProfileOption] = [
-        ProfileOption(title: "Personal Information", iconName: "person.text.rectangle", color: .blue, type: .navigation, isDestructive: false),
+        ProfileOption(title: "Information", iconName: "person.text.rectangle", color: .blue, type: .navigation, isDestructive: false),
         
         ProfileOption(title: "Change Password", iconName: "lock.shield", color: .purple, type: .navigation, isDestructive: false),
         
@@ -104,6 +105,14 @@ struct ProfileView: View {
                     .presentationDetents([.medium]) // Hiện 1 nửa màn
                         .presentationDragIndicator(.visible)
             }
+            .alert("Log Out", isPresented: $showLogoutAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Yes, log out", role: .destructive) {
+                    performLogout()
+                }
+            } message: {
+                Text("Are you sure you want to log out?")
+            }
         }
     }
     
@@ -111,19 +120,13 @@ struct ProfileView: View {
     func handleAction(for option: ProfileOption) {
         switch option.title {
         case "Log Out":
-            do {
-                try authViewModel.logOut()
-            } catch {
-                print("Lỗi logout: \(error.localizedDescription)")
-            }
+            showLogoutAlert = true
             
         case "Change Password":
             // Đẩy màn hình vào stack
-            print("Chon change pass")
             path.append(ProfileDestination.changePassword)
             
         case "Personal Information":
-            print("chon infor")
             path.append(ProfileDestination.personalInfo)
             
         case "Notification":
@@ -131,6 +134,14 @@ struct ProfileView: View {
             
         default:
             print("Tính năng chưa phát triển")
+        }
+    }
+    
+    func performLogout() {
+        do {
+            try authViewModel.logOut()
+        } catch {
+            print("ProfileView-Logout: \(error.localizedDescription)")
         }
     }
     

@@ -9,9 +9,10 @@ import SwiftUI
 
 struct InputMessageView: View {
     @Binding var text: String
+    @Binding var replyMessage: Message?
     @State var showStickerPicker = false
     @State var showImagePicker = false
-    @FocusState var isFocus: Bool
+    @FocusState.Binding var isFocus: Bool
     
     var placeholder: String = "Enter message"
     var onSend: () -> Void
@@ -23,6 +24,42 @@ struct InputMessageView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            if let reply = replyMessage {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Replying to \(reply.userName)")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.blue)
+                        Text(reply.type == .text ? reply.text : "Sent a photo/sticker")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+                    }
+                    .padding(.leading, 4)
+                    .overlay(alignment: .leading) {
+                        Rectangle().fill(Color.blue).frame(width: 2) // Đường kẻ xanh bên trái
+                    }
+                    
+                    Spacer()
+                    
+                    // Nút hủy trả lời
+                    Button {
+                        withAnimation {
+                            replyMessage = nil
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .padding(8)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(Color(.systemGray6))
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             HStack(spacing: 12) {
                 // Bật tắt Image
                 Button(action: {
@@ -30,7 +67,7 @@ struct InputMessageView: View {
                 }) {
                     Image(systemName: "photo")
                         .font(.system(size: 22))
-                        .foregroundColor(showImagePicker ? .blue : .gray)
+                        .foregroundColor(showImagePicker ? .gray : .blue)
                         .padding(8)
                 }
                 
@@ -43,7 +80,6 @@ struct InputMessageView: View {
                     Button {
                         toggleStickerPicker()
                     } label: {
-                        // Giữ nguyên icon như bạn yêu cầu
                         Image(systemName: showStickerPicker ? "keyboard" : "face.smiling")
                             .font(.system(size: 22))
                             .foregroundColor(.blue)
@@ -80,7 +116,7 @@ struct InputMessageView: View {
             }
             // Show Image View
             if showImagePicker {
-                MockPhotoPicker { name, width, height in
+                ImagePicker { name, width, height in
                     // Khi chọn ảnh xong -> Gửi luôn -> Ẩn picker
                     onSendImage(name, width, height)
                     showImagePicker = false

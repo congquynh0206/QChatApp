@@ -9,6 +9,8 @@ import FirebaseAuth
 
 struct PrivateChatView: View {
     @StateObject var viewModel: PrivateChatViewModel
+    @State private var replyingMessage: Message? = nil
+    @FocusState private var isInputFocused: Bool
     
     init(user: User) {
         self._viewModel = StateObject(wrappedValue: PrivateChatViewModel(user: user))
@@ -25,7 +27,21 @@ struct PrivateChatView: View {
                 ScrollView {
                     LazyVStack {
                         ForEach(viewModel.messages) {message in
-                            MessageRow(message: message, isMe: message.userId == currentUserId, user: viewModel.user)
+                            MessageRow(
+                                message: message,
+                                isMe: message.userId == currentUserId,
+                                user: viewModel.user,
+                                onReply: { msg in
+                                    self.replyingMessage = msg
+                                    self.isInputFocused = true
+                                },
+                                onReaction: { msg, icon in
+                                    viewModel.sendReaction(messageId: msg.id, icon: icon)
+                                },
+                                cancelReaction: {msg in
+                                    viewModel.cancelReaction(messageId: msg.id)
+                                }
+                            )
                         }
                     }
                     .padding()
@@ -42,8 +58,11 @@ struct PrivateChatView: View {
             // Thanh nhập tin nhắn
             InputMessageView(
                 text: $viewModel.text,
+                replyMessage: $replyingMessage,
+                isFocus: $isInputFocused,
                 onSend: {
-                    viewModel.sendTextMessage()
+                    viewModel.sendTextMessage(replyTo: replyingMessage)
+                    replyingMessage = nil // Reset sau khi gửi
                 },
                 onSendSticker: { stickerName in
                     viewModel.sendSticker(stickerName: stickerName)

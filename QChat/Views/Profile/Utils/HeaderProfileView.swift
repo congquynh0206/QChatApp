@@ -27,7 +27,8 @@ struct HeaderProfileView: View {
                     
                         // Icon bên canh
                         Image(systemName: "pencil.circle.fill")
-                            .symbolRenderingMode(.multicolor)
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.white, .gray)
                             .font(.system(size: 30))
                             .offset(x: 35, y: 35)
                     }

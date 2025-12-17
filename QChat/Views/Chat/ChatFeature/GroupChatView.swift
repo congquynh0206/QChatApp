@@ -9,10 +9,12 @@ import SwiftUI
 import FirebaseAuth
 
 struct GroupChatView: View {
-    @StateObject var viewModel = ChatViewModel()
+    @StateObject var viewModel = GroupChatViewModel()
     @EnvironmentObject var authModel : AuthViewModel
     @Environment(\.dismiss) var dismiss
     @State private var text = ""
+    @State private var replyingMessage: Message? = nil
+    @FocusState private var isInputFocused: Bool
     
     private var currentUserId: String {
         return Auth.auth().currentUser?.uid ?? ""
@@ -29,8 +31,11 @@ struct GroupChatView: View {
             // Input View
             InputMessageView(
                 text: $viewModel.text,
+                replyMessage: $replyingMessage,
+                isFocus: $isInputFocused,
                 onSend: {
-                    viewModel.sendTextMessage()
+                    viewModel.sendTextMessage(replyTo: replyingMessage)
+                    replyingMessage = nil
                 },
                 onSendSticker: { stickerName in
                     viewModel.sendSticker(stickerName: stickerName)
@@ -61,15 +66,7 @@ extension GroupChatView {
             }
             
             // Avatar nhóm
-            ZStack {
-                Circle()
-                    .fill(Color.blue.opacity(0.1))
-                    .frame(width: 50, height: 50)
-                Image(systemName: "person.3.fill")
-                    .font(.system(size: 25))
-                    .foregroundColor(.blue)
-            }
-            
+            GroupAvatarView()
             // Thông tin Nhóm
             VStack(alignment: .leading, spacing: 2) {
                 Text("Nhóm Chat Chung")
@@ -112,7 +109,18 @@ extension GroupChatView {
                         MessageRow(
                             message: message,
                             isMe: message.userId == currentUserId,
-                            user: getAuthor(for: message) // Gọi hàm helper
+                            user: getAuthor(for: message),
+                            onReply: { msg in
+                                self.replyingMessage = msg
+                                self.isInputFocused = true
+                            },
+                            onReaction: { msg, icon in
+                                viewModel.sendReaction(messageId: msg.id, icon: icon)
+                            },
+                            cancelReaction: { msg in
+                                viewModel.cancelReaction(messageId: msg.id)
+                            }
+                            
                         )
                     }
                 }

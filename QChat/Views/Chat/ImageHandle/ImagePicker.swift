@@ -6,7 +6,7 @@
 //
 import SwiftUI
 
-struct MockPhotoPicker: View {
+struct ImagePicker: View {
     let samplePhotos : [String] = (1...5).map {"img-\($0)"}
     var onSendImage: (String, CGFloat, CGFloat) -> Void // Trả về Tên + Rộng + Cao
     

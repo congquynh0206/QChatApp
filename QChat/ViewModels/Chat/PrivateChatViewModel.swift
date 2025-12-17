@@ -53,8 +53,11 @@ class PrivateChatViewModel : ObservableObject{
                     let pWidth = data["photoWidth"] as? CGFloat
                     let pHeight = data["photoHeight"] as? CGFloat
                     let timestamp = (data["timestamp"] as? Timestamp)?.dateValue() ?? Date()
-                    
-                    return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp)
+                    let replyText = data["replyText"] as? String
+                    let replyUser = data["replyUser"] as? String
+                    let reactions = data["reactions"] as? [String: String]
+                        
+                    return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp, replyText: replyText, replyUser: replyUser, reacts: reactions)
                 }
             }
     }
@@ -74,9 +77,9 @@ class PrivateChatViewModel : ObservableObject{
     }
     
     // Hàm gửi Text
-    func sendTextMessage() {
+    func sendTextMessage(replyTo: Message? = nil) {
         guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        performSendMessage(content: text, type: "text")
+        performSendMessage(content: text, type: "text", replyTo: replyTo)
         self.text = ""
     }
     
@@ -91,14 +94,14 @@ class PrivateChatViewModel : ObservableObject{
     }
     
     // Hàm xử lý logic chung để đẩy lên Firebase
-    private func performSendMessage(content: String, type: String, width: CGFloat = 0, height: CGFloat = 0) {
+    private func performSendMessage(content: String, type: String, width: CGFloat = 0, height: CGFloat = 0,replyTo: Message? = nil) {
         guard let currentUid = Auth.auth().currentUser?.uid else { return }
         
         let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
         let chatPartnerId = user.id
         
         // Data lưu vào Message Detail
-        let data: [String: Any] = [
+        var data: [String: Any] = [
             "text": content,
             "type": type,
             "photoWidth": width,
@@ -107,13 +110,18 @@ class PrivateChatViewModel : ObservableObject{
             "userName": currentUserName,
             "timestamp": Timestamp(date: Date())
         ]
+        if let reply = replyTo {
+            data["replyToId"] = reply.id
+            data["replyUser"] = reply.userName
+            data["replyText"] = reply.type == .text ? reply.text : "[Media]"
+        }
         
         Firestore.firestore().collection("chats").document(chatId).collection("messages").addDocument(data: data)
         
         // Data lưu vào Recent Message (List chat bên ngoài)
         var recentText = content
-        if type == "sticker" { recentText = "[Nhãn dán]" }
-        if type == "image" { recentText = "[Hình ảnh]" }
+        if type == "sticker" { recentText = "[Sticker]" }
+        if type == "image" { recentText = "[Photo]" }
         
         let recentMsgData: [String: Any] = [
             "text": recentText,
@@ -122,7 +130,36 @@ class PrivateChatViewModel : ObservableObject{
             "timestamp": Timestamp(date: Date())
         ]
         
+        // Lưu vào recent để cả 2 cùng hiện
         Firestore.firestore().collection("recent_messages").document(currentUid).collection("messages").document(chatPartnerId).setData(recentMsgData)
         Firestore.firestore().collection("recent_messages").document(chatPartnerId).collection("messages").document(currentUid).setData(recentMsgData)
+    }
+    
+    // Hàm thả react
+    func sendReaction(messageId: String, icon: String) {
+        guard let currentUid = Auth.auth().currentUser?.uid else { return }
+        let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
+        
+        let fieldName = "reactions.\(currentUid)"
+        
+        Firestore.firestore().collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .document(messageId)
+            .updateData([fieldName: icon])
+    }
+    
+    // Hàm xoá react
+    func cancelReaction(messageId: String) {
+        guard let currentUid = Auth.auth().currentUser?.uid else { return }
+        let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
+        
+        let fieldName = "reactions.\(currentUid)"
+        
+        Firestore.firestore().collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .document(messageId)
+            .updateData([fieldName: FieldValue.delete()])
     }
 }

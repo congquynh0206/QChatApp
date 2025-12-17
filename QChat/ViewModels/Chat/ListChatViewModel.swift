@@ -119,7 +119,7 @@ class ListChatViewModel: ObservableObject {
             .document(conversationId)
             .collection("messages")
         
-        // Vì xoá sub-collection phải xoá từng document bên trong
+        // Xoá sub-collection phải xoá từng document bên trong
         messagesRef.getDocuments { snapshot, error in
             if let error = error {
                 print("ListChatViewModel_2: \(error)")

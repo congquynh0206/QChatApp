@@ -59,9 +59,9 @@ struct ChangePasswordView: View {
     }
 }
 
-#Preview {
-    NavigationStack {
-        ChangePasswordView()
-            .environmentObject(AuthViewModel())
-    }
-}
+//#Preview {
+//    NavigationStack {
+//        ChangePasswordView()
+//            .environmentObject(AuthViewModel())
+//    }
+//}

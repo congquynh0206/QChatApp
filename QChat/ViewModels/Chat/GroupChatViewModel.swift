@@ -9,7 +9,7 @@ import Foundation
 import FirebaseFirestore
 import FirebaseAuth
 
-class ChatViewModel: ObservableObject {
+class GroupChatViewModel: ObservableObject {
     @Published var messages: [Message] = []
     @Published var text: String = ""
     @Published var currentUserName: String = "Unknown"
@@ -41,7 +41,7 @@ class ChatViewModel: ObservableObject {
                 
                 DispatchQueue.main.async {
                     self.currentUserName = name
-                    self.currentUserAvatarUrl = avatarUrl // Lưu vào biến
+                    self.currentUserAvatarUrl = avatarUrl
                 }
             }
         }
@@ -54,7 +54,7 @@ class ChatViewModel: ObservableObject {
             .addSnapshotListener { querySnapshot, error in
                 // Nếu có lỗi thì thoát
                 if let error = error {
-                    print("ChatViewModel - Fetch Mess: \(error.localizedDescription)")
+                    print("GroupChatViewModel_2: \(error.localizedDescription)")
                     return
                 }
                 
@@ -68,22 +68,25 @@ class ChatViewModel: ObservableObject {
                     let text = data["text"] as? String ?? ""
                     let userId = data["userId"] as? String ?? ""
                     let userName = data["userName"] as? String ?? "Unknown"
-                    let typeRaw = data["type"] as? String ?? "text"
+                    let typeRaw = data["type"] as? String ?? "text"             // để đổi từ text sang enum
                     let type = MessageType(rawValue: typeRaw) ?? .text
                     let pWidth = data["photoWidth"] as? CGFloat
                     let pHeight = data["photoHeight"] as? CGFloat
                     let timestamp = (data["timestamp"] as? Timestamp)?.dateValue() ?? Date()
                     let userAvatarUrl = data["userAvatarUrl"] as? String ?? ""
+                    let replyText = data["replyText"] as? String
+                    let replyUser = data["replyUser"] as? String
+                    let reactions = data["reactions"] as? [String: String]
                     
-                    return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp, userAvatarUrl: userAvatarUrl)
+                    return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp, userAvatarUrl: userAvatarUrl, replyText: replyText, replyUser: replyUser, reacts: reactions)
                 }
             }
     }
     
     // Hàm gửi Text
-    func sendTextMessage() {
-        guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        performSendMessage(content: text, type: "text")
+    func sendTextMessage(replyTo: Message? = nil) {
+        guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return } //trim()
+        performSendMessage(content: text, type: "text", replyTo: replyTo)
         self.text = ""
     }
     
@@ -97,10 +100,10 @@ class ChatViewModel: ObservableObject {
     }
     
     // Hàm xử lý chung
-    private func performSendMessage(content: String, type: String, width: CGFloat = 0, height: CGFloat = 0) {
+    private func performSendMessage(content: String, type: String, width: CGFloat = 0, height: CGFloat = 0, replyTo: Message? = nil) {
         guard let currentUserID = Auth.auth().currentUser?.uid else { return }
         
-        let data: [String: Any] = [
+        var data: [String: Any] = [
             "text": content,
             "type": type,
             "photoWidth": width,
@@ -109,9 +112,37 @@ class ChatViewModel: ObservableObject {
             "userName": currentUserName,
             "userAvatarUrl": self.currentUserAvatarUrl,
             "timestamp": Timestamp(date: Date())
-            
         ]
         
+        // Nếu có reply thì lưu thêm vào data
+        if let reply = replyTo {
+            data["replyToId"] = reply.id
+            data["replyUser"] = reply.userName
+            data["replyText"] = reply.type == .text ? reply.text : "[Media]"
+        }
+        
         db.collection("messages").addDocument(data: data)
+    }
+    
+    // Hàm thả react
+    func sendReaction(messageId: String, icon: String) {
+        guard let currentUserID = Auth.auth().currentUser?.uid else { return }
+        let fieldName = "reactions.\(currentUserID)"
+        
+        db.collection("messages").document(messageId).updateData([fieldName: icon])
+        { err in
+            if let err = err { print("GroupChatViewModel_3: \(err)") }
+        }
+    }
+    
+    // Hàm xoá react
+    func cancelReaction(messageId: String) {
+        guard let currentUserID = Auth.auth().currentUser?.uid else { return }
+        let fieldName = "reactions.\(currentUserID)"
+        
+        db.collection("messages").document(messageId).updateData([fieldName: FieldValue.delete()])
+        { err in
+            if let err = err { print("GroupChatViewModel_4: \(err)") }
+        }
     }
 }
