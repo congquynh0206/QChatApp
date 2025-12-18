@@ -138,10 +138,15 @@ struct ProfileView: View {
     }
     
     func performLogout() {
-        do {
-            try authViewModel.logOut()
-        } catch {
-            print("ProfileView-Logout: \(error.localizedDescription)")
+        UserStatusService.shared.updateStatus(isOnline: false)
+        
+        // Đợi 0.5 giây cho mạng xử lý status offline rồi mới đăng xuất
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            do {
+                try authViewModel.logOut()
+            } catch {
+                print("ProfileView-Logout: \(error.localizedDescription)")
+            }
         }
     }
     

@@ -106,7 +106,7 @@ struct ListChatView: View {
                     Button{
                         selectedTab = 1
                     }label:{
-                        AvatarView(user: authViewModel.currentUser, size: 40)
+                        AvatarView(user: authViewModel.currentUser, size: 40, displayOnl: true)
                     }
                 }
             }

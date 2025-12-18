@@ -23,7 +23,7 @@ struct HeaderProfileView: View {
                     onAvatarClick() // Gọi hành động mở bảng chọn
                 }) {
                     ZStack {
-                        AvatarView(user: user, size: 100)
+                        AvatarView(user: user, size: 100, displayOnl: false)
                     
                         // Icon bên canh
                         Image(systemName: "pencil.circle.fill")

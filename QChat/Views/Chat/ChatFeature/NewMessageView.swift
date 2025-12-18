@@ -52,7 +52,7 @@ struct NewMessageView: View {
                         } label: {
                             HStack(spacing: 15) {
                                 // Avatar tròn
-                                AvatarView(user: user, size: 50)
+                                AvatarView(user: user, size: 50, displayOnl: true)
                                 
                                 Text(user.username)
                                     .font(.headline)

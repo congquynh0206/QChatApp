@@ -25,7 +25,7 @@ struct MessageRow: View {
             
             // Avatar (Trái)
             if !isMe {
-                AvatarView(user: user, size: 35)
+                AvatarView(user: user, size: 35, displayOnl: true)
             }
             
             VStack(alignment: isMe ? .trailing : .leading, spacing: 2) {

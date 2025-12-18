@@ -56,7 +56,7 @@ class AuthViewModel : ObservableObject{
                 throw NSError(domain: "AppError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Please verify your email address before logging in."])
             }
             self.userSession = result.user
-            
+            UserStatusService.shared.updateStatus(isOnline: true)
             await fetchUser()
         }catch{
             isLogging = false

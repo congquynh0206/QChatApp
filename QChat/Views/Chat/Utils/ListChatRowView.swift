@@ -22,7 +22,7 @@ struct ListChatRowView: View {
             if isGroup {
                 GroupAvatarView()
             }else{
-                AvatarView(user: user, size: 50)
+                AvatarView(user: user, size: 50, displayOnl: true)
             }
             
             

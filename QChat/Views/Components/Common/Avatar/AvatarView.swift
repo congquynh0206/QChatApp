@@ -10,6 +10,7 @@ import SwiftUI
 struct AvatarView : View {
     let user : User?
     var size : CGFloat
+    var displayOnl : Bool
     
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -37,7 +38,7 @@ struct AvatarView : View {
             // trạng thái online
             if let user = user {
                 // onl
-                if user.isOnline == true {
+                if user.isOnline == true && displayOnl{
                     Circle()
                         .fill(Color.green)
                         .frame(width: size * 0.3, height: size * 0.3)
@@ -47,7 +48,7 @@ struct AvatarView : View {
                 } else {
                    // off
                     // Chỉ hiện khi avatar > 45
-                    if size > 45, let lastActive = user.lastActive {
+                    if size > 45 && displayOnl , let lastActive = user.lastActive {
                         Text(lastActive.timeAgoDisplay())
                             .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.white)

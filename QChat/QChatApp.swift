@@ -32,8 +32,8 @@ struct QChatApp: App {
             }else{
                 LoginView().environmentObject(authViewModel)
             }
-        }.onChange(of: scenePhase) {
-            switch scenePhase {
+        }.onChange(of: scenePhase) {_, newPhase in
+            switch newPhase {
             case .active:
                 UserStatusService.shared.updateStatus(isOnline: true)
             case .inactive, .background:

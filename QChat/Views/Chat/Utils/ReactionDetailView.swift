@@ -40,7 +40,7 @@ struct ReactionDetailView: View {
                     ForEach(reactedUsers, id: \.user.id) { item in
                         HStack {
                             // Avatar
-                            AvatarView(user: item.user, size: 40)
+                            AvatarView(user: item.user, size: 40, displayOnl: true)
                             
                             // Tên
                             Text(item.user.username)
