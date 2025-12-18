@@ -145,4 +145,26 @@ class GroupChatViewModel: ObservableObject {
             if let err = err { print("GroupChatViewModel_4: \(err)") }
         }
     }
+
+    // Hàm thu hồi
+    func unsendMessage(message: Message) {
+        guard let currentUid = Auth.auth().currentUser?.uid else { return }
+        
+        // Chỉ cho phép thu hồi tin nhắn của mình
+        if message.userId != currentUid { return }
+        
+        // Đổi type sang 'unsent' và xóa nội dung
+        db.collection("messages").document(message.id).updateData([
+            "type": "unsent",
+            "text": "Message has been unsent",
+            "photoWidth": 0,
+            "photoHeight": 0,
+            "replyToId": FieldValue.delete(),
+            "replyText": FieldValue.delete(),
+            "replyUser": FieldValue.delete(),
+            "reactions": FieldValue.delete()
+        ]) { err in
+            if let err = err { print("GroupChatViewModel_5: \(err)") }
+        }
+    }
 }

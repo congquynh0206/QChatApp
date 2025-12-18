@@ -99,9 +99,13 @@ class PrivateChatViewModel : ObservableObject{
         
         let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
         let chatPartnerId = user.id
+        // Lấy id message
+        let msgRef = Firestore.firestore().collection("chats").document(chatId).collection("messages").document()
+        let messageId = msgRef.documentID
         
         // Data lưu vào Message Detail
         var data: [String: Any] = [
+            "id": messageId,
             "text": content,
             "type": type,
             "photoWidth": width,
@@ -116,7 +120,7 @@ class PrivateChatViewModel : ObservableObject{
             data["replyText"] = reply.type == .text ? reply.text : "[Media]"
         }
         
-        Firestore.firestore().collection("chats").document(chatId).collection("messages").addDocument(data: data)
+        msgRef.setData(data)
         
         // Data lưu vào Recent Message (List chat bên ngoài)
         var recentText = content
@@ -127,7 +131,8 @@ class PrivateChatViewModel : ObservableObject{
             "text": recentText,
             "fromId": currentUid,
             "toId": chatPartnerId,
-            "timestamp": Timestamp(date: Date())
+            "timestamp": Timestamp(date: Date()),
+            "messageId": messageId
         ]
         
         // Lưu vào recent để cả 2 cùng hiện
@@ -161,5 +166,75 @@ class PrivateChatViewModel : ObservableObject{
             .collection("messages")
             .document(messageId)
             .updateData([fieldName: FieldValue.delete()])
+    }
+    
+    // Hàm thu hồi tin nhắn
+    func unsendMessage(message: Message) {
+        guard let currentUid = Auth.auth().currentUser?.uid else { return }
+        
+        // Chỉ được xoá tin của mình
+        if message.userId != currentUid { return }
+        
+        // Lấy Chat ID
+        let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
+        
+        // Thực hiện update lên Firestore
+        Firestore.firestore().collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .document(message.id)
+            .updateData([
+                "type": "unsent",                    // Đổi loại tin nhắn
+                "text": "Message has been unsent",     // Đổi nội dung
+                "photoWidth": 0,                     // Reset kích thước ảnh
+                "photoHeight": 0,
+                // Xoá các trường không cần thiết
+                "replyToId": FieldValue.delete(),
+                "replyText": FieldValue.delete(),
+                "replyUser": FieldValue.delete(),
+                "reactions": FieldValue.delete()
+            ]) { err in
+                if let err = err {
+                    print("PrivateChatViewModel_3: \(err.localizedDescription)")
+                }
+            }
+        
+        // Cập nhật recent nếu là tnhan cuối
+        updateRecentMessageAfterUnsend(
+                text: "Message has been unsent",
+                chatPartnerId: user.id,
+                currentUid: currentUid,
+                unsentMessageId: message.id 
+            )
+    }
+    
+    // Hàm phụ trợ để cập nhật Recent Message
+    
+    private func updateRecentMessageAfterUnsend(text: String, chatPartnerId: String, currentUid: String, unsentMessageId: String) {
+        
+        let recentRef = Firestore.firestore().collection("recent_messages")
+            .document(currentUid).collection("messages").document(chatPartnerId)
+        
+        // Đọc tin nhắn gần nhất hiện tại
+        recentRef.getDocument { snapshot, error in
+            if let data = snapshot?.data(),
+               let currentRecentId = data["messageId"] as? String {
+                
+                // Nếu ID trùng khớp thì đây chính là tin nhắn vừa thu hồi
+                if currentRecentId == unsentMessageId {
+                    let newData: [String: Any] = [
+                        "text": text,
+                    ]
+                    
+                    // Cập nhật cho mình
+                    recentRef.updateData(newData)
+                    
+                    // Cập nhật cho đối phương
+                    Firestore.firestore().collection("recent_messages")
+                        .document(chatPartnerId).collection("messages").document(currentUid)
+                        .updateData(newData)
+                }
+            }
+        }
     }
 }

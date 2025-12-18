@@ -18,6 +18,7 @@ struct MessageRow: View {
     var onReply: (Message) -> Void = { _ in }
     var onReaction: (Message, String) -> Void = { _, _ in }
     var cancelReaction: (Message) -> Void = { _ in }
+    var onUnsend: (Message) -> Void = { _ in }
     
     var body: some View {
         HStack(alignment: .center) { 
@@ -105,6 +106,16 @@ struct MessageRow: View {
                 
                 // Tương tác
                 .contextMenu {
+                    
+                    if isMe && message.type != .unsent {
+                        Button(role: .destructive) {
+                            onUnsend(message)
+                        } label: {
+                            Label("Recall", systemImage: "trash")
+                        }
+                        Divider()
+                    }
+                    
                     // Nút Reply
                     Button {
                         onReply(message)
@@ -177,7 +188,21 @@ struct MessageRow: View {
                     .cornerRadius(16)
                     .clipped()
             }
+        
+        case .unsent:
+            Text("Message has been unsent")
+                .font(.system(size: 14, weight: .light, design: .serif))
+                .italic()
+                .padding(10)
+                .foregroundColor(.gray)
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
         }
+        
     }
     
     // View hiển thị các icon reaction nhỏ ở góc tin nhắn

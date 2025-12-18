@@ -40,7 +40,10 @@ struct PrivateChatView: View {
                                 },
                                 cancelReaction: {msg in
                                     viewModel.cancelReaction(messageId: msg.id)
-                                }
+                                },
+                                onUnsend: { msg in
+                                        viewModel.unsendMessage(message: msg)
+                                    }
                             )
                         }
                     }
