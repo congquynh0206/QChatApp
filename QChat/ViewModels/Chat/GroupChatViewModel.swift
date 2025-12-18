@@ -14,6 +14,7 @@ class GroupChatViewModel: ObservableObject {
     @Published var text: String = ""
     @Published var currentUserName: String = "Unknown"
     @Published var currentUserAvatarUrl: String = ""
+    @Published var allUsers: [User] = []
     
     // Khởi tạo database
     private let db = Firestore.firestore()
@@ -23,6 +24,36 @@ class GroupChatViewModel: ObservableObject {
         fetchMessages()
     }
     
+    // Lấy toàn bộ thành viên
+    func fetchAllUsers() {
+        db.collection("users").getDocuments { snapshot, error in
+            if let error = error {
+                print("GroupChatViewModel_0: \(error)")
+                return
+            }
+            
+            guard let documents = snapshot?.documents else { return }
+            
+            DispatchQueue.main.async {
+                self.allUsers = documents.compactMap { doc -> User? in
+                    let data = doc.data()
+                    let id = doc.documentID
+                    let username = data["username"] as? String ?? "Unknown"
+                    let email = data["email"] as? String ?? ""
+                    let avatar = data["avatar"] as? String ?? ""
+                    return User(id: id, email: email, username: username, avatar: avatar)
+                }
+            }
+        }
+    }
+    
+    // Computed property để lọc lấy danh sách ảnh từ tin nhắn
+    var galleryMessages: [Message] {
+        return messages.filter { $0.type == .image }
+    }
+    
+    
+    // Lấy thông tin user
     func fetchCurrentUserProfile() {
         // Lấy ID người dùng đang đăng nhập
         guard let uid = Auth.auth().currentUser?.uid else { return }

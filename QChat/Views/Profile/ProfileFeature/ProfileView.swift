@@ -38,9 +38,7 @@ struct ProfileView: View {
     @State private var showAvatarSelection = false
     @State private var showLogoutAlert = false
     
-    let avatarList = [
-        "avatar-1", "avatar-2", "avatar-3","avatar-4","avatar-5","avatar-6"
-    ]
+    let avatarList : [String] = (1...6).map{ "avatar-\($0)"}
     
     // Cấu hình lưới 2 cột
     let columns = [
@@ -126,7 +124,7 @@ struct ProfileView: View {
             // Đẩy màn hình vào stack
             path.append(ProfileDestination.changePassword)
             
-        case "Personal Information":
+        case "Information":
             path.append(ProfileDestination.personalInfo)
             
         case "Notification":

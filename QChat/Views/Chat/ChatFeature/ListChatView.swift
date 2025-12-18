@@ -33,6 +33,7 @@ struct ListChatView: View {
     var body: some View {
         NavigationStack {
             List {
+                // Nhóm chat chung
                 Section {
                     SearchBar(text: $searchText, placeholder: "Search")
                         .padding(.bottom, 10)
@@ -48,7 +49,7 @@ struct ListChatView: View {
                         } label: {
                             ListChatRowView(
                                 avatarName: "G",
-                                name: "Nhóm Chat Chung",
+                                name: "Group Chat",
                                 lastMessage: "Join the chat",
                                 time: "Now",
                                 isGroup: true
@@ -58,6 +59,7 @@ struct ListChatView: View {
                     }
                 }
                 
+                // Chat riêng
                 Section {
                     ForEach(filteredMessages) { message in
                         ZStack {
@@ -90,7 +92,7 @@ struct ListChatView: View {
                 }
             }
             .listStyle(.plain)
-            .navigationTitle("Message")
+            .navigationTitle("QChat")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -126,13 +128,12 @@ struct ListChatView: View {
     func deleteMessage(at offsets: IndexSet) {
         // Duyệt các index
         offsets.forEach { index in
-            // Phải dùng filteredMessages vì nếu người dùng đang Search, vị trí sẽ khác danh sách gốc
+            // Dùng filteredMessages vì nếu người dùng đang Search, vị trí sẽ khác danh sách gốc
             let messageToDelete = filteredMessages[index]
             
             // Gọi ViewModel để xoá trên Server
             viewModel.deleteConversation(messageToDelete)
         }
-        // viewModel.recentMessages.remove(atOffsets: offsets)
     }
 }
 

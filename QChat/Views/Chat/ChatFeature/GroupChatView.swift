@@ -10,11 +10,14 @@ import FirebaseAuth
 
 struct GroupChatView: View {
     @StateObject var viewModel = GroupChatViewModel()
+    
     @EnvironmentObject var authModel : AuthViewModel
     @Environment(\.dismiss) var dismiss
+    @FocusState private var isInputFocused: Bool
+    
     @State private var text = ""
     @State private var replyingMessage: Message? = nil
-    @FocusState private var isInputFocused: Bool
+    @State private var showGroupInfo = false
     
     private var currentUserId: String {
         return Auth.auth().currentUser?.uid ?? ""
@@ -46,6 +49,9 @@ struct GroupChatView: View {
             )
         }
         .navigationBarBackButtonHidden(true) // Ẩn nút "< Message" mặc định
+        .sheet(isPresented: $showGroupInfo) {
+            GroupInfoView(viewModel: viewModel)
+        }
     }
 }
 
@@ -87,7 +93,7 @@ extension GroupChatView {
             Spacer()
             
             Button {
-                // Hành động xem info nhóm
+                showGroupInfo = true
             } label: {
                 Image(systemName: "info.circle")
                     .font(.system(size: 25))

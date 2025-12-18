@@ -19,6 +19,14 @@ struct SearchBar: View {
             
             TextField(placeholder, text: $text)
                 .autocorrectionDisabled() // Tắt tự sửa lỗi chính tả
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                }
+            }
         }
         .padding(10)
         .background(Color(.systemGray6))
@@ -26,6 +34,6 @@ struct SearchBar: View {
     }
 }
 
-#Preview {
-    SearchBar(text: .constant(""), placeholder: "Tìm kiếm...")
-}
+//#Preview {
+//    SearchBar(text: .constant(""), placeholder: "Tìm kiếm...")
+//}
