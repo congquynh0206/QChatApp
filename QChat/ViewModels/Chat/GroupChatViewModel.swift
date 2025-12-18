@@ -78,7 +78,9 @@ class GroupChatViewModel: ObservableObject {
                     let replyUser = data["replyUser"] as? String
                     let reactions = data["reactions"] as? [String: String]
                     
-                    return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp, userAvatarUrl: userAvatarUrl, replyText: replyText, replyUser: replyUser, reacts: reactions)
+                    let readBy = data["readBy"] as? [String]
+                    
+                    return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp, userAvatarUrl: userAvatarUrl, replyText: replyText, replyUser: replyUser,readBy: readBy, reacts: reactions)
                 }
             }
     }
@@ -167,4 +169,24 @@ class GroupChatViewModel: ObservableObject {
             if let err = err { print("GroupChatViewModel_5: \(err)") }
         }
     }
+    // Đánh dấu tin nhắn đã đọc
+    func markMessageAsRead(message: Message) {
+            guard let currentUid = Auth.auth().currentUser?.uid else { return }
+
+            // Đọc rồi thì thôi
+            if let readBy = message.readBy, readBy.contains(currentUid) {
+                return
+            }
+            
+            // Cập nhật lên Firestore
+            db.collection("messages")
+                .document(message.id)
+                .updateData([
+                    "readBy": FieldValue.arrayUnion([currentUid])
+                ]) { error in
+                    if let error = error {
+                        print("GroupChatViewModel_6: \(error.localizedDescription)")
+                    }
+                }
+        }
 }

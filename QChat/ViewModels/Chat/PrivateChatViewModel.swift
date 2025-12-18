@@ -53,11 +53,14 @@ class PrivateChatViewModel : ObservableObject{
                     let pWidth = data["photoWidth"] as? CGFloat
                     let pHeight = data["photoHeight"] as? CGFloat
                     let timestamp = (data["timestamp"] as? Timestamp)?.dateValue() ?? Date()
+                    
                     let replyText = data["replyText"] as? String
                     let replyUser = data["replyUser"] as? String
                     let reactions = data["reactions"] as? [String: String]
+                    
+                    let readBy = data["readBy"] as? [String]
                         
-                    return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp, replyText: replyText, replyUser: replyUser, reacts: reactions)
+                    return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp, replyText: replyText, replyUser: replyUser,readBy: readBy ,reacts: reactions)
                 }
             }
     }
@@ -237,4 +240,26 @@ class PrivateChatViewModel : ObservableObject{
             }
         }
     }
+    
+    // Đánh dấu tin nhắn này đã đọc
+    func markMessageAsRead(message: Message) {
+            guard let currentUid = Auth.auth().currentUser?.uid else { return }
+            
+            // Nếu mình đã có trong danh sách 'readBy' rồi thì thôi
+            if let readBy = message.readBy, readBy.contains(currentUid) {
+                return
+            }
+            
+            // Cập nhật lên Firestore
+            let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
+            
+            Firestore.firestore().collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .document(message.id)
+                .updateData([
+                    "readBy": FieldValue.arrayUnion([currentUid]) // Thêm ID mình vào mảng
+                ])
+        }
+    
 }

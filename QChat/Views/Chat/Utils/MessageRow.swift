@@ -19,6 +19,7 @@ struct MessageRow: View {
     var onReaction: (Message, String) -> Void = { _, _ in }
     var cancelReaction: (Message) -> Void = { _ in }
     var onUnsend: (Message) -> Void = { _ in }
+    var onAppear: (Message) -> Void = { _ in }
     
     var body: some View {
         HStack(alignment: .center) { 
@@ -156,6 +157,8 @@ struct MessageRow: View {
                     .presentationDetents([.fraction(0.35), .medium])
                     .presentationDragIndicator(.visible) // Hiện thanh gạch ngang để kéo xuống
             }
+        }.onAppear {
+            onAppear(message)
         }
     }
     

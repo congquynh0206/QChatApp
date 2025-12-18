@@ -26,25 +26,8 @@ struct PrivateChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack {
-                        ForEach(viewModel.messages) {message in
-                            MessageRow(
-                                message: message,
-                                isMe: message.userId == currentUserId,
-                                user: viewModel.user,
-                                onReply: { msg in
-                                    self.replyingMessage = msg
-                                    self.isInputFocused = true
-                                },
-                                onReaction: { msg, icon in
-                                    viewModel.sendReaction(messageId: msg.id, icon: icon)
-                                },
-                                cancelReaction: {msg in
-                                    viewModel.cancelReaction(messageId: msg.id)
-                                },
-                                onUnsend: { msg in
-                                        viewModel.unsendMessage(message: msg)
-                                    }
-                            )
+                        ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
+                            messageItem(at: index, message: message)
                         }
                     }
                     .padding()
@@ -83,4 +66,37 @@ struct PrivateChatView: View {
         .toolbarBackground(.regularMaterial, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
     }
+    @ViewBuilder
+    private func messageItem(at index: Int, message: Message) -> some View {
+        // Logic Header Ngày
+        if shouldShowHeader(at: index, messages: viewModel.messages) {
+            DateHeaderView(date: message.timestamp)
+        }
+        
+        // Logic Tin nhắn
+        MessageRow(
+            message: message,
+            isMe: message.userId == currentUserId,
+            user: viewModel.user,
+            onReply: { msg in
+                self.replyingMessage = msg
+                self.isInputFocused = true
+            },
+            onReaction: { msg, icon in
+                viewModel.sendReaction(messageId: msg.id, icon: icon)
+            },
+            cancelReaction: { msg in
+                viewModel.cancelReaction(messageId: msg.id)
+            },
+            onUnsend: { msg in
+                viewModel.unsendMessage(message: msg)
+            },
+            onAppear: { msg in
+                if msg.userId != currentUserId {
+                    viewModel.markMessageAsRead(message: msg)
+                }
+            }
+        )
+    }
 }
+

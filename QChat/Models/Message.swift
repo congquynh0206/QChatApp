@@ -35,6 +35,9 @@ struct Message: Identifiable, Codable {
     var replyText : String?
     var replyUser : String?
     
+    
+    var readBy: [String]?
+    
     // React
     var reacts : [String:String]?
     
@@ -55,6 +58,11 @@ struct Message: Identifiable, Codable {
         if let replyTxt = replyText { dict["replyText"] = replyTxt }
         if let replyUsr = replyUser { dict["replyUser"] = replyUsr }
         if let r = reacts { dict["reacts"] = r }
+        
+        if let readBy = readBy {
+            dict["readBy"] = readBy
+        }
+        
         return dict
     }
 }
