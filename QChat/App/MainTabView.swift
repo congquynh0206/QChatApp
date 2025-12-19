@@ -28,7 +28,7 @@ struct MainTabView : View {
             
     }
 }
-#Preview {
-    MainTabView()
-        .environmentObject(AuthViewModel())
-}
+//#Preview {
+//    MainTabView()
+//        .environmentObject(AuthViewModel())
+//}

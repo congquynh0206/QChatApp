@@ -106,7 +106,7 @@ struct PersonalInformationView: View {
         // Thông báo kết quả
         .alert("Update Profile", isPresented: $showResultAlert) {
             Button("OK") {
-                // Nếu bị logout (code 100) thì view sẽ tự đóng do userSession nil
+                // Nếu bị logout thì view sẽ tự đóng do userSession nil
             }
         } message: {
             Text(resultMessage)

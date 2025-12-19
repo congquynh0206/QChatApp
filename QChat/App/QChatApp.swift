@@ -14,7 +14,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
     // Bật Firebase
     FirebaseApp.configure()
-    print(" Đã kết nối Firebase thành công!")
+    print(" Đã kết nối Firebase thành công")
     return true
   }
 }
