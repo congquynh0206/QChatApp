@@ -65,6 +65,7 @@ struct MessageRow: View {
                 // Nội dung tnhan
                 ZStack(alignment: .bottomTrailing) {
                     ZStack(alignment: .center) {
+                        // Tin nhắn
                         messageContent
                         
                         // Hiệu ứng trái tim bay khi double tap
@@ -81,7 +82,7 @@ struct MessageRow: View {
                             onReaction(message, "❤️")
                             
                             // Kích hoạt hiệu ứng
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
                                 showHeartAnimation = true
                             }
                             
@@ -94,7 +95,7 @@ struct MessageRow: View {
                         }
                     }
                     
-                    
+                    // Icon react
                     if let reactions = message.reacts, !reactions.isEmpty {
                         Button {
                             showReactionList = true

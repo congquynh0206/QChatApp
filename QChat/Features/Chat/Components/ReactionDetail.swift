@@ -9,10 +9,9 @@ import SwiftUI
 import FirebaseFirestore
 
 struct ReactionDetailView: View {
-    // Dữ liệu đầu vào
     let reactions: [String: String]
     
-    // Danh sách User đã tải về để hiển thị
+    // Danh sách User đã thả react
     @State private var reactedUsers: [(user: User, icon: String)] = []
     @Environment(\.dismiss) var dismiss
     
@@ -72,12 +71,12 @@ struct ReactionDetailView: View {
         let db = Firestore.firestore()
         
         var loadedUsers: [(User, String)] = []
-        let group = DispatchGroup()
+        let group = DispatchGroup()             // Bất đồng bộ, tải đủ mới đi tiếp
         
         for uid in userIds {
-            group.enter()
+            group.enter()       // Thông báo cbi chạy , tăng bộ đếm +1
             db.collection("users").document(uid).getDocument { snapshot, _ in
-                defer { group.leave() }
+                defer { group.leave() }         // Báo lại là đã xong, -1
                 if let data = snapshot?.data() {
                     let user = User(
                         id: uid,
@@ -92,8 +91,8 @@ struct ReactionDetailView: View {
                 }
             }
         }
-        
-        group.notify(queue: .main) {
+        // tự chạy khi bộ đếm = 0
+        group.notify(queue: .main) {    // chạy trên main
             self.reactedUsers = loadedUsers
         }
     }

@@ -37,7 +37,7 @@ struct GroupInfoView: View {
     var body: some View {
         NavigationView {
             VStack {
-                // Segment Control để chuyển tab
+                // Điều hướng
                 Picker("Options", selection: $selectedTab) {
                     Text("Member").tag(0)
                     Text("Gallery").tag(1)
@@ -64,6 +64,7 @@ struct GroupInfoView: View {
                     }
                 }
             }
+            .toolbar(showImageViewer ? .hidden : .visible, for: .navigationBar)
             // Tích hợp ImageViewer
             .overlay(
                 ZStack {
@@ -113,10 +114,10 @@ struct GroupInfoView: View {
                     .foregroundColor(.gray)
                     .padding(.top, 50)
             } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 2)], spacing: 2) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
                     ForEach(viewModel.galleryMessages, id: \.id) { msg in
                         Button {
-                            self.selectedImageName = msg.text // msg.text lưu tên ảnh
+                            self.selectedImageName = msg.text   // lưu tên ảnh
                             withAnimation {
                                 self.showImageViewer = true
                             }
@@ -125,11 +126,10 @@ struct GroupInfoView: View {
                             Image(msg.text)
                                 .resizable()
                                 .scaledToFill()
-                                .frame(width: 100, height: 100)
+                                .frame(width: 110, height: 100)
                                 .clipped()
                                 .contentShape(Rectangle())
                         }
-                        .padding(8)
                     }
                 }
             }
@@ -162,7 +162,7 @@ struct GroupInfoView: View {
                                 .foregroundColor(.gray)
                         }
                         
-                        // Nội dung tin nhắn (có highlight)
+                        // Nội dung tin nhắn có highlight
                         HighlightTextView(text: msg.text, target: searchText, color: .orange)
                             .font(.body)
                             .lineLimit(2)

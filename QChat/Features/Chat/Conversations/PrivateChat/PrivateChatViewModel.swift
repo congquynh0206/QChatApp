@@ -300,5 +300,8 @@ class PrivateChatViewModel : ObservableObject{
                 "readBy": FieldValue.arrayUnion([currentUid]) // Thêm ID mình vào mảng
             ])
     }
+    deinit {
+        typingListener?.remove()
+    }
     
 }

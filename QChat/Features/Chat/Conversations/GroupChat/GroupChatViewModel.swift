@@ -291,6 +291,10 @@ class GroupChatViewModel: ObservableObject {
                 if let error = error {
                     print("GroupChatViewModel_6: \(error.localizedDescription)")
                 }
-            }
+        }
+    }
+    deinit {
+        typingListener?.remove()
     }
 }
+
