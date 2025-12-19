@@ -282,23 +282,23 @@ class PrivateChatViewModel : ObservableObject{
     
     // Đánh dấu tin nhắn này đã đọc
     func markMessageAsRead(message: Message) {
-            guard let currentUid = Auth.auth().currentUser?.uid else { return }
-            
-            // Nếu mình đã có trong danh sách 'readBy' rồi thì thôi
-            if let readBy = message.readBy, readBy.contains(currentUid) {
-                return
-            }
-            
-            // Cập nhật lên Firestore
-            let chatId = ChatService.getChatId(fromId: currentUid, toId: partner.id)
-            
-            Firestore.firestore().collection("chats")
-                .document(chatId)
-                .collection("messages")
-                .document(message.id)
-                .updateData([
-                    "readBy": FieldValue.arrayUnion([currentUid]) // Thêm ID mình vào mảng
-                ])
+        guard let currentUid = Auth.auth().currentUser?.uid else { return }
+        
+        // Nếu mình đã có trong danh sách 'readBy' rồi thì thôi
+        if let readBy = message.readBy, readBy.contains(currentUid) {
+            return
         }
+        
+        // Cập nhật lên Firestore
+        let chatId = ChatService.getChatId(fromId: currentUid, toId: partner.id)
+        
+        Firestore.firestore().collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .document(message.id)
+            .updateData([
+                "readBy": FieldValue.arrayUnion([currentUid]) // Thêm ID mình vào mảng
+            ])
+    }
     
 }

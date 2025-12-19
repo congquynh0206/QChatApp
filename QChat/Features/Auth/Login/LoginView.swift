@@ -16,10 +16,13 @@ struct LoginView : View {
     var body: some View {
         NavigationStack{
             VStack{
+                // Logo
                 Image("logo")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 150, height: 120)
+                
+                // Input
                 CustomTextField(placeholder: "Your email", text: $email , systemIcon: "envelope", secret: false)
                 CustomTextField(placeholder: "Password", text: $password , systemIcon: "lock",secret: true)
                 HStack {
@@ -34,6 +37,8 @@ struct LoginView : View {
                     }
                 }
                 .padding(.trailing, 5)
+                
+                //Button
                 CustomButton(title: "Login", isValid: !email.isEmpty && !password.isEmpty){
                     Task{
                         do{
@@ -70,6 +75,6 @@ struct LoginView : View {
 
 
 
-#Preview {
-    LoginView().environmentObject(AuthViewModel())
-}
+//#Preview {
+//    LoginView().environmentObject(AuthViewModel())
+//}

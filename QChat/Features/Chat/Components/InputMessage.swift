@@ -20,7 +20,7 @@ struct InputMessageView: View {
     var onSendImage:(String, CGFloat, CGFloat) -> Void
     
     // Danh sách Emoji
-    let stickers : [String] = (1...5).map {"sticker-\($0)"}
+    let stickers : [String] = (1...8).map {"sticker-\($0)"}
     
     var body: some View {
         VStack(spacing: 0) {

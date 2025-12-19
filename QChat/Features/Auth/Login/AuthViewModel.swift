@@ -13,6 +13,7 @@ class AuthViewModel : ObservableObject{
     @Published var userSession: FirebaseAuth.User?
     @Published var currentUser: User?
     @Published var isLogging = false
+    
     init(){
         self.userSession = Auth.auth().currentUser
         Task{
@@ -110,7 +111,7 @@ class AuthViewModel : ObservableObject{
             throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not found user."])
         }
         
-        // Tạo Credential từ mật khẩu cũ để kiểm tra
+        // Tạo cre từ mật khẩu cũ để kiểm tra
         let credential = EmailAuthProvider.credential(withEmail: email, password: oldPass)
 
         // Re-authen, nếu sai thì sẽ throw lỗi ngay, ko update đc
@@ -165,13 +166,13 @@ class AuthViewModel : ObservableObject{
             "avatar": iconName
         ]) { error in
             if let error = error {
-                print("Lỗi lưu avatar: \(error.localizedDescription)")
+                print("AuthViewModel_1 \(error.localizedDescription)")
                 return
             }
             DispatchQueue.main.async {
                 self.currentUser?.avatar = iconName
             }
-            print("Đã đổi avatar thành công: \(iconName)")
+            print("Đổi avatar thành công: \(iconName)")
         }
     }
 }

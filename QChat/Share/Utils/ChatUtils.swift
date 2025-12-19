@@ -34,4 +34,13 @@ struct ChatUtils {
             }
         }
     }
+    
+    // Check xem phải tin nhắn cuối ko
+    static func isLastMessageByMe(message: Message, messages: [Message], currentUserId: String) -> Bool {
+        // Tìm tin nhắn cuối cùng trong danh sách mà có userId trùng với mình
+        if let lastMessageByMe = messages.last(where: { $0.userId == currentUserId }) {
+            return message.id == lastMessageByMe.id
+        }
+        return false
+    }
 }

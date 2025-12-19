@@ -208,32 +208,49 @@ extension GroupChatView {
     }
     @ViewBuilder
     private func messageItem(at index: Int, message: Message) -> some View {
-        if ChatUtils.shouldShowHeader(at: index, messages: viewModel.messages) {
-            DateHeaderView(date: message.timestamp)
-        }
-        
-        MessageRow(
-            message: message,
-            isMe: message.userId == currentUserId,
-            user: getAuthor(for: message),
-            onReply: { msg in
-                self.replyingMessage = msg
-                self.isInputFocused = true
-            },
-            onReaction: { msg, icon in
-                viewModel.sendReaction(messageId: msg.id, icon: icon)
-            },
-            cancelReaction: { msg in
-                viewModel.cancelReaction(messageId: msg.id)
-            },
-            onUnsend: { msg in
-                viewModel.unsendMessage(message: msg)
-            },
-            onAppear: { msg in
-                if msg.userId != currentUserId {
-                    viewModel.markMessageAsRead(message: msg)
+        VStack{
+            if ChatUtils.shouldShowHeader(at: index, messages: viewModel.messages) {
+                DateHeaderView(date: message.timestamp)
+            }
+            
+            MessageRow(
+                message: message,
+                isMe: message.userId == currentUserId,
+                user: getAuthor(for: message),
+                onReply: { msg in
+                    self.replyingMessage = msg
+                    self.isInputFocused = true
+                },
+                onReaction: { msg, icon in
+                    viewModel.sendReaction(messageId: msg.id, icon: icon)
+                },
+                cancelReaction: { msg in
+                    viewModel.cancelReaction(messageId: msg.id)
+                },
+                onUnsend: { msg in
+                    viewModel.unsendMessage(message: msg)
+                },
+                onAppear: { msg in
+                    if msg.userId != currentUserId {
+                        viewModel.markMessageAsRead(message: msg)
+                    }
+                }
+            )
+            
+            if message.userId == currentUserId  {
+                if ChatUtils.isLastMessageByMe(message: message, messages: viewModel.messages, currentUserId: currentUserId){
+                    HStack{
+                        Spacer()
+                        
+                        SeenView(
+                            readByIds: message.readBy,
+                            allUsers: viewModel.allUsers,
+                            currentUserId: currentUserId
+                        )
+                        .transition(.opacity)
+                    }
                 }
             }
-        )
+        }
     }
 }

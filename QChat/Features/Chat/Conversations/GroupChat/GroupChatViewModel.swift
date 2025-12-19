@@ -30,7 +30,7 @@ class GroupChatViewModel: ObservableObject {
             // Đường dẫn cho nhóm riêng
             return db.collection("groups").document(id).collection("messages")
         } else {
-            // Đường dẫn  cho nhóm chung
+            // Đường dẫn cho nhóm chung
             return db.collection("messages")
         }
     }
@@ -39,6 +39,7 @@ class GroupChatViewModel: ObservableObject {
         self.groupId = groupId
         fetchCurrentUserProfile()
         fetchMessages()
+        fetchAllUsers()
     }
     
     // Hàm lắng nghe trạng thái gõ
@@ -139,7 +140,7 @@ class GroupChatViewModel: ObservableObject {
         }
     }
     
-    // Hàm Lấy tin nhắn (Real-time)
+    // Hàm Lấy tin nhắn
     func fetchMessages() {
         messagesCollection
             .order(by: "timestamp", descending: false) // Sắp xếp tin nhắn cũ trên, mới dưới
