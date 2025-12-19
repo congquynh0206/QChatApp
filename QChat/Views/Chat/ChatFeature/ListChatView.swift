@@ -1,5 +1,5 @@
 //
-//  InboxView.swift
+//  ListChatView.swift
 //  QChat
 //
 //  Created by Trangptt on 12/12/25.
@@ -12,133 +12,177 @@ struct ListChatView: View {
     @StateObject var viewModel = ListChatViewModel()
     @EnvironmentObject var authViewModel : AuthViewModel
     
-    // Biến để quản lý điều hướng
+    // Biến điều hướng
     @State private var showNewMessage = false
-    @State private var selectedUser: User? // Lưu người được chọn từ danh bạ
-    @State private var showChat = false    // Kích hoạt chuyển trang
-    @State var searchText = ""
+    @State private var selectedUser: User?
+    @State private var showChat = false
     
-    // Lọc theo tên
-    var filteredMessages: [RecentMessage] {
-        if searchText.isEmpty {
-            return viewModel.recentMessages
-        } else {
-            return viewModel.recentMessages.filter { message in
-                let userName = message.user?.username ?? ""
-                return userName.localizedCaseInsensitiveContains(searchText)
-            }
-        }
-    }
+    // Biến điều hướng tạo nhóm
+    @State private var newlyCreatedGroup: ChatGroup?
+    @State private var navigateToNewGroup = false
     
     var body: some View {
         NavigationStack {
             List {
-                // Nhóm chat chung
-                Section {
-                    SearchBar(text: $searchText, placeholder: "Search")
-                        .padding(.bottom, 10)
-                        .listRowSeparator(.hidden) // Ẩn dòng kẻ
-                        .listRowInsets(EdgeInsets()) // Bỏ padding mặc định của List
-                        .padding(.horizontal)
-                        .padding(.top, 10)
-                    
-                    if searchText.isEmpty {
-                        NavigationLink {
-                            GroupChatView()
-                                .toolbar(.hidden, for: .tabBar)
-                        } label: {
-                            ListChatRowView(
-                                avatarName: "G",
-                                name: "Group Chat",
-                                lastMessage: "Join the chat",
-                                time: "Now",
-                                isGroup: true
-                            )
-                        }
-                        .listRowSeparator(.hidden)
-                    }
-                }
+                // Group chat
+                GroupSectionView(
+                    searchText: $viewModel.searchText,
+                    groups: viewModel.myGroups
+                )
                 
-                // Chat riêng
-                Section {
-                    ForEach(filteredMessages) { message in
-                        ZStack {
-                            NavigationLink {
-                                let targetUser = message.user ?? User(
-                                    id: message.chatPartnerId,
-                                    email: "",
-                                    username: message.user?.username ?? "Loading...",
-                                    avatar: message.user?.avatar ?? nil
-                                )
-                                PrivateChatView(user: targetUser)
-                            } label: {
-                                EmptyView()
-                            }
-                            .opacity(0) // Ẩn link đi nhưng vẫn bấm được
-                            
-                            ListChatRowView(
-                                avatarName: message.user?.username ?? "U",
-                                name: message.user?.username ?? "Loading...",
-                                lastMessage: message.text,
-                                time: message.timestamp.formatted(.dateTime.hour().minute()),
-                                isGroup: false,
-                                user: message.user
-                            )
-                        }
-                        .listRowSeparator(.hidden)
-                        
-                    }
-                    .onDelete(perform: deleteMessage)
-                }
+                // Private Chat
+                PrivateChatSectionView(viewModel: viewModel)
             }
             .listStyle(.plain)
             .navigationTitle("QChat")
             .navigationBarTitleDisplayMode(.inline)
+            
+            // Toolbar
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showNewMessage.toggle()
-                    } label: {
-                        Image(systemName: "square.and.pencil")
-                            .font(.system(size: 20))
-                            .foregroundColor(.blue)
-                    }
-                }
-                ToolbarItem(placement: .navigationBarLeading){
-                    Button{
-                        selectedTab = 1
-                    }label:{
-                        AvatarView(user: authViewModel.currentUser, size: 40, displayOnl: true)
-                    }
-                }
+                toolbarContent
             }
-            .fullScreenCover(isPresented: $showNewMessage) {
-                NewMessageView { user in
-                    self.selectedUser = user
-                    self.showChat = true
-                }
-            }
+            // Điều hướng chat riêng
             .navigationDestination(isPresented: $showChat) {
                 if let user = selectedUser {
-                    PrivateChatView(user: user)
+                    PrivateChatView(partner: user)
                 }
+            }
+            // Điều hướng nhóm mới
+            .navigationDestination(isPresented: $navigateToNewGroup) {
+                if let group = newlyCreatedGroup {
+                    GroupChatView(group: group)
+                }
+            }
+            // Popup tạo tin nhắn mới
+            .fullScreenCover(isPresented: $showNewMessage) {
+                NewMessageView(
+                    onSelectUser: { user in
+                        self.selectedUser = user
+                        self.showChat = true
+                    },
+                    onGroupCreated: { group in
+                        self.newlyCreatedGroup = group
+                        self.showNewMessage = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            self.navigateToNewGroup = true
+                        }
+                    }
+                )
             }
         }
     }
-    func deleteMessage(at offsets: IndexSet) {
-        // Duyệt các index
-        offsets.forEach { index in
-            // Dùng filteredMessages vì nếu người dùng đang Search, vị trí sẽ khác danh sách gốc
-            let messageToDelete = filteredMessages[index]
-            
-            // Gọi ViewModel để xoá trên Server
-            viewModel.deleteConversation(messageToDelete)
+    
+    // Tool bar
+    @ToolbarContentBuilder
+    var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading){
+            Button {
+                selectedTab = 1
+            } label: {
+                AvatarView(user: authViewModel.currentUser, size: 40, displayOnl: true)
+            }
+        }
+        
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button {
+                showNewMessage.toggle()
+            } label: {
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 20))
+                    .foregroundColor(.blue)
+            }
         }
     }
 }
 
+// Group chat
+struct GroupSectionView: View {
+    @Binding var searchText: String
+    let groups: [ChatGroup]
+    
+    var body: some View {
+        Section {
+            // Search Bar
+            SearchBar(text: $searchText, placeholder: "Search")
+                .padding(.bottom, 10)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets())
+                .padding(.horizontal)
+                .padding(.top, 10)
+            
+            // Nhóm Chat Chung
+            NavigationLink {
+                GroupChatView(group: nil)
+                    .toolbar(.hidden, for: .tabBar)
+            } label: {
+                ListChatRowView(
+                    avatarName: "",
+                    name: "QChat Community",
+                    lastMessage: "Join to chat",
+                    time: "",
+                    isGroup: true
+                )
+            }
+            .listRowSeparator(.hidden)
+            
+            // Danh sách Nhóm Riêng
+            ForEach(groups) { group in
+                ZStack {
+                    NavigationLink {
+                        GroupChatView(group: group)
+                            .toolbar(.hidden, for: .tabBar)
+                    } label: {
+                        EmptyView()
+                    }.opacity(0)
+                    
+                    ListChatRowView(
+                        avatarName: group.name,
+                        name: group.name,
+                        lastMessage: group.latestMessage,
+                        time: group.updatedAt.formatted(.dateTime.hour().minute()),
+                        isGroup: true
+                    )
+                }
+                .listRowSeparator(.hidden)
+            }
+        }
+    }
+}
 
-
-//#Preview {
-//    ListChatView(selectedTab: .constant(0))
-//}
+// Private chat
+struct PrivateChatSectionView: View {
+    @ObservedObject var viewModel: ListChatViewModel
+    
+    var body: some View {
+        Section {
+            ForEach(viewModel.filteredMessages) { message in
+                ZStack {
+                    NavigationLink {
+                        let targetUser = message.user ?? User(
+                            id: message.chatPartnerId,
+                            email: "",
+                            username: message.user?.username ?? "Loading...",
+                            avatar: message.user?.avatar ?? nil
+                        )
+                        PrivateChatView(partner: targetUser)
+                    } label: {
+                        EmptyView()
+                    }
+                    .opacity(0)
+                    
+                    ListChatRowView(
+                        avatarName: message.user?.username ?? "U",
+                        name: message.user?.username ?? "Loading...",
+                        lastMessage: message.text,
+                        time: message.timestamp.formatted(.dateTime.hour().minute()),
+                        isGroup: false,
+                        user: message.user
+                    )
+                }
+                .listRowSeparator(.hidden)
+            }
+            // Xoá
+            .onDelete(perform: viewModel.deleteMessage)
+        }
+    }
+}

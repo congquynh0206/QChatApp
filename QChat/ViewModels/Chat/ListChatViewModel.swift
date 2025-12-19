@@ -27,17 +27,58 @@ class ListChatViewModel: ObservableObject {
     @Published var recentMessages = [RecentMessage]()
     @Published var showNewMessageView = false
     @Published var isLoading = false
+    @Published var myGroups: [ChatGroup] = []
+    
+    @Published var searchText = ""
     
     private let service = ChatService()
     private var firestoreListener: ListenerRegistration?
     
     init() {
         fetchRecentMessages()
+        fetchMyGroups()
     }
     
     // Hủy lắng nghe khi thoát màn hình
     deinit {
         firestoreListener?.remove()
+    }
+    
+    // Lọc
+    var filteredMessages: [RecentMessage] {
+        if searchText.isEmpty {
+            return recentMessages
+        } else {
+            return recentMessages.filter { message in
+                let userName = message.user?.username ?? ""
+                return userName.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+    
+    
+    // Fetch các group
+    func fetchMyGroups() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        // Lấy những nhóm chứa mình
+        Firestore.firestore().collection("groups")
+            .whereField("members", arrayContains: uid)
+            .order(by: "updatedAt", descending: true)
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("ListChatViewModel_0: \(error)")
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else { return }
+                
+                DispatchQueue.main.async {
+                    self.myGroups = documents.compactMap { doc -> ChatGroup? in
+                        return ChatGroup(dictionary: doc.data())
+                    }
+                }
+            }
     }
     
     // Lấy các cuộc trò chuyện gần đây
@@ -94,6 +135,16 @@ class ListChatViewModel: ObservableObject {
         }
     }
     
+    // Xoá UI
+    func deleteMessage(at offsets: IndexSet) {
+        // Duyệt các index
+        offsets.forEach { index in
+            let messageToDelete = filteredMessages[index]
+            // Xoá trên firestore
+            deleteConversation(messageToDelete)
+        }
+    }
+    
     // Xoá cuộc nói chuyện và lịch sử tin nhắn
     
     func deleteConversation(_ message: RecentMessage) {
@@ -103,10 +154,9 @@ class ListChatViewModel: ObservableObject {
         let db = Firestore.firestore()
         let batch = db.batch()
         
-        // Xác định ID của đoạn chat trong collection "chats"
         let conversationId = ChatService.getChatId(fromId: currentUid, toId: partnerId)
         
-        // Xoá trong List Recent để cập nhật UI
+        // Xoá trong recent để cập nhật UI
         let recentRef = db.collection("recent_messages")
             .document(currentUid)
             .collection("messages")
@@ -119,7 +169,7 @@ class ListChatViewModel: ObservableObject {
             .document(conversationId)
             .collection("messages")
         
-        // Xoá sub-collection phải xoá từng document bên trong
+        // Xoá từng sub-collection document bên trong
         messagesRef.getDocuments { snapshot, error in
             if let error = error {
                 print("ListChatViewModel_2: \(error)")
@@ -131,7 +181,7 @@ class ListChatViewModel: ObservableObject {
                 batch.deleteDocument(doc.reference)
             }
             
-            // Xoá luôn cái vỏ document của đoạn chat
+            // Xoá luôn cái document của đoạn chat
             let conversationRef = db.collection("chats").document(conversationId)
             batch.deleteDocument(conversationRef)
             
@@ -140,8 +190,6 @@ class ListChatViewModel: ObservableObject {
                 if let error = error {
                     print("ListChatViewModel_3: \(error.localizedDescription)")
                 } else {
-                    print("Đã xoá sạch cả Recent và History trong Chats!")
-                    
                     // Cập nhật UI
                     DispatchQueue.main.async {
                         self.recentMessages.removeAll { $0.id == message.id }

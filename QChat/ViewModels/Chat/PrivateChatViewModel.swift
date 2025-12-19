@@ -13,19 +13,57 @@ class PrivateChatViewModel : ObservableObject{
     @Published var messages = [Message]()
     @Published var text = ""
     @Published var currentUserName : String = "Unknow"
-    let user : User
     
-    init(user : User){
-        self.user = user
+    @Published var isPartnerTyping : Bool = false
+    let partner : User
+
+    
+    // Listen typing
+    private var typingListener: ListenerRegistration?
+    
+    init(partner : User){
+        self.partner = partner
         fetchMessage()
         fetchCurrentUserProfile()
     }
     
+    var chatId : String {
+        guard let currentUid = Auth.auth().currentUser?.uid else { return ""}
+        return ChatService.getChatId(fromId: currentUid, toId: partner.id)
+    }
+    
+    // Hàm lắng nghe trạng thái gõ
+    func subscribeToTypingStatus() {
+        guard (Auth.auth().currentUser?.uid) != nil else { return }
+
+        typingListener = Firestore.firestore().collection("chats").document(chatId).collection("typing").document(partner.id)
+            .addSnapshotListener { snapshot, error in
+                guard let data = snapshot?.data() else {
+                    // Nếu không có data -> chưa gõ lần nào
+                    DispatchQueue.main.async { self.isPartnerTyping = false }
+                    return
+                }
+                let isTyping = data["isTyping"] as? Bool ?? false
+                
+                DispatchQueue.main.async {
+                    self.isPartnerTyping = isTyping
+                }
+            }
+    }
+    
+    // Gửi trạng thái
+    func sendTypingStatus (isTyping : Bool){
+        guard let currentId = Auth.auth().currentUser?.uid else {return}
+        let data: [String : Any] = ["isTyping" : isTyping]
+        
+        Firestore.firestore().collection("chats").document(chatId).collection("typing").document(currentId)
+            .setData(data, merge: true)
+    }
+    
+    
     //Load tin nhắn
     func fetchMessage() {
-        guard let currentId = Auth.auth().currentUser?.uid else { return }
-        
-        let chatId = ChatService.getChatId(fromId: currentId, toId: user.id)
+        guard (Auth.auth().currentUser?.uid) != nil else { return }
         
         Firestore.firestore().collection("chats")
             .document(chatId)
@@ -63,6 +101,7 @@ class PrivateChatViewModel : ObservableObject{
                     return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp, replyText: replyText, replyUser: replyUser,readBy: readBy ,reacts: reactions)
                 }
             }
+        subscribeToTypingStatus()
     }
     
     // Load tên của mình để gửi kèm khi gửi tin nhăns mới
@@ -100,8 +139,8 @@ class PrivateChatViewModel : ObservableObject{
     private func performSendMessage(content: String, type: String, width: CGFloat = 0, height: CGFloat = 0,replyTo: Message? = nil) {
         guard let currentUid = Auth.auth().currentUser?.uid else { return }
         
-        let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
-        let chatPartnerId = user.id
+        let chatId = ChatService.getChatId(fromId: currentUid, toId: partner.id)
+        let chatPartnerId = partner.id
         // Lấy id message
         let msgRef = Firestore.firestore().collection("chats").document(chatId).collection("messages").document()
         let messageId = msgRef.documentID
@@ -125,7 +164,7 @@ class PrivateChatViewModel : ObservableObject{
         
         msgRef.setData(data)
         
-        // Data lưu vào Recent Message (List chat bên ngoài)
+        // Data lưu vào Recent Message
         var recentText = content
         if type == "sticker" { recentText = "[Sticker]" }
         if type == "image" { recentText = "[Photo]" }
@@ -146,7 +185,7 @@ class PrivateChatViewModel : ObservableObject{
     // Hàm thả react
     func sendReaction(messageId: String, icon: String) {
         guard let currentUid = Auth.auth().currentUser?.uid else { return }
-        let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
+        let chatId = ChatService.getChatId(fromId: currentUid, toId: partner.id)
         
         let fieldName = "reactions.\(currentUid)"
         
@@ -160,7 +199,7 @@ class PrivateChatViewModel : ObservableObject{
     // Hàm xoá react
     func cancelReaction(messageId: String) {
         guard let currentUid = Auth.auth().currentUser?.uid else { return }
-        let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
+        let chatId = ChatService.getChatId(fromId: currentUid, toId: partner.id)
         
         let fieldName = "reactions.\(currentUid)"
         
@@ -179,7 +218,7 @@ class PrivateChatViewModel : ObservableObject{
         if message.userId != currentUid { return }
         
         // Lấy Chat ID
-        let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
+        let chatId = ChatService.getChatId(fromId: currentUid, toId: partner.id)
         
         // Thực hiện update lên Firestore
         Firestore.firestore().collection("chats")
@@ -205,7 +244,7 @@ class PrivateChatViewModel : ObservableObject{
         // Cập nhật recent nếu là tnhan cuối
         updateRecentMessageAfterUnsend(
                 text: "Message has been unsent",
-                chatPartnerId: user.id,
+                chatPartnerId: partner.id,
                 currentUid: currentUid,
                 unsentMessageId: message.id 
             )
@@ -251,7 +290,7 @@ class PrivateChatViewModel : ObservableObject{
             }
             
             // Cập nhật lên Firestore
-            let chatId = ChatService.getChatId(fromId: currentUid, toId: user.id)
+            let chatId = ChatService.getChatId(fromId: currentUid, toId: partner.id)
             
             Firestore.firestore().collection("chats")
                 .document(chatId)

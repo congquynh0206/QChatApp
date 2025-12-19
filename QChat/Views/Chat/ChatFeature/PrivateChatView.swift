@@ -1,19 +1,17 @@
-//
-//  PrivateChatView.swift
-//  QChat
-//
-//  Created by Trangptt on 12/12/25.
-//
 import SwiftUI
 import FirebaseAuth
 
 struct PrivateChatView: View {
     @StateObject var viewModel: PrivateChatViewModel
-    @State private var replyingMessage: Message? = nil
+    
+    @Environment(\.dismiss) var dismiss
     @FocusState private var isInputFocused: Bool
     
-    init(user: User) {
-        self._viewModel = StateObject(wrappedValue: PrivateChatViewModel(user: user))
+    @State private var replyingMessage: Message? = nil
+    @State private var typingTimer: Timer?
+    
+    init(partner: User) {
+        self._viewModel = StateObject(wrappedValue: PrivateChatViewModel(partner: partner))
     }
     
     private var currentUserId: String {
@@ -21,34 +19,29 @@ struct PrivateChatView: View {
     }
     
     var body: some View {
-        VStack {
-            // Danh sách tin nhắn
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack {
-                        ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
-                            messageItem(at: index, message: message)
-                        }
-                    }
-                    .padding()
+        VStack(spacing: 0) {
+            headerView
+            
+            messageListView
+            
+            if viewModel.isPartnerTyping {
+                HStack(spacing: 8) {
+                    TypingIndicator()
+                    AvatarView(user: viewModel.partner, size: 20, displayOnl: false)
+                    Spacer()
                 }
-                .onChange(of: viewModel.messages.count) {
-                    if let lastMsg = viewModel.messages.last {
-                        withAnimation {
-                            proxy.scrollTo(lastMsg.id, anchor: .bottom)
-                        }
-                    }
-                }
+                .padding(.leading)
+                .padding(.bottom, 5)
+                .transition(.opacity)
             }
             
-            // Thanh nhập tin nhắn
             InputMessageView(
                 text: $viewModel.text,
                 replyMessage: $replyingMessage,
                 isFocus: $isInputFocused,
                 onSend: {
                     viewModel.sendTextMessage(replyTo: replyingMessage)
-                    replyingMessage = nil // Reset sau khi gửi
+                    replyingMessage = nil
                 },
                 onSendSticker: { stickerName in
                     viewModel.sendSticker(stickerName: stickerName)
@@ -58,26 +51,107 @@ struct PrivateChatView: View {
                 }
             )
         }
-        // Tiêu đề là tên người mình đang chat
-        .navigationTitle(viewModel.user.username)
-        .navigationBarTitleDisplayMode(.inline)
-        // Ẩn TabBar khi vào chat riêng
+        .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
-        .toolbarBackground(.regularMaterial, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
+        .onChange(of: viewModel.text) { _, newValue in
+            handleTyping(text: newValue)
+        }
     }
+}
+
+extension PrivateChatView {
+    
+    private var headerView: some View {
+        HStack(spacing: 15) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(.blue)
+                    .frame(width: 30, height: 40)
+            }
+            
+            AvatarView(user: viewModel.partner, size: 35, displayOnl: true)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(viewModel.partner.username)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                
+                if viewModel.partner.isOnline ?? false{
+                    Text("Active now")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(.regularMaterial)
+        .zIndex(1)
+    }
+    
+    private var messageListView: some View {
+        ScrollViewReader { proxy in
+            if viewModel.messages.isEmpty {
+                Spacer()
+                Text("Send a message to start a conversation")
+                    .font(.caption)
+                    .foregroundStyle(Color.gray)
+                Spacer()
+            } else {
+                ScrollView {
+                    LazyVStack {
+                        ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
+                            messageItem(at: index, message: message)
+                        }
+                    }
+                    .padding()
+                }
+                .background(Color(.systemGray6).opacity(0.3))
+                // Cuộn khi tin nhắn thay đổi (Gửi/Nhận mới)
+                .onChange(of: viewModel.messages.count) {
+                    ChatUtils.scrollToBottom(proxy: proxy, messages: viewModel.messages)
+                }
+                // Cuộn khi bàn phím hiện lên
+                .onChange(of: isInputFocused) {
+                    ChatUtils.scrollToBottom(proxy: proxy, messages: viewModel.messages)
+                }
+                // Cuộn khi mới vào màn hình
+                .onAppear {
+                    ChatUtils.scrollToBottom(proxy: proxy, messages: viewModel.messages)
+                }
+            }
+        }
+    }
+    
+    func handleTyping(text: String) {
+        if text.isEmpty {
+            viewModel.sendTypingStatus(isTyping: false)
+            typingTimer?.invalidate()
+            return
+        }
+        
+        viewModel.sendTypingStatus(isTyping: true)
+        typingTimer?.invalidate()
+        
+        typingTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+            viewModel.sendTypingStatus(isTyping: false)
+        }
+    }
+    
     @ViewBuilder
     private func messageItem(at index: Int, message: Message) -> some View {
-        // Logic Header Ngày
-        if shouldShowHeader(at: index, messages: viewModel.messages) {
+        if ChatUtils.shouldShowHeader(at: index, messages: viewModel.messages) {
             DateHeaderView(date: message.timestamp)
         }
         
-        // Logic Tin nhắn
         MessageRow(
             message: message,
             isMe: message.userId == currentUserId,
-            user: viewModel.user,
+            user: viewModel.partner,
             onReply: { msg in
                 self.replyingMessage = msg
                 self.isInputFocused = true
@@ -99,4 +173,3 @@ struct PrivateChatView: View {
         )
     }
 }
-

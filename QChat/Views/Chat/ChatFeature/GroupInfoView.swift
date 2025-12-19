@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct GroupInfoView: View {
+    
+    var group: ChatGroup?
+    
     @ObservedObject var viewModel: GroupChatViewModel
     @Environment(\.dismiss) var dismiss
     
@@ -18,6 +21,18 @@ struct GroupInfoView: View {
     // Xử lý xem ảnh
     @State private var showImageViewer = false
     @State private var selectedImageName = ""
+    
+    var displayMembers: [User] {
+        if let currentGroup = group {
+            // Nhóm riêng: Chỉ lấy user có ID nằm trong danh sách thành viên
+            return viewModel.allUsers.filter { user in
+                currentGroup.members.contains(user.id)
+            }
+        } else {
+            // Nhóm chung (nil): Hiển thị tất cả
+            return viewModel.allUsers
+        }
+    }
     
     var body: some View {
         NavigationView {
@@ -40,7 +55,7 @@ struct GroupInfoView: View {
                     searchMessageView
                 }
             }
-            .navigationTitle("Group Information")
+            .navigationTitle(group?.name ?? "Group Information")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -69,7 +84,7 @@ struct GroupInfoView: View {
     
     // Tab1: Danh sách thành viên
     private var membersList: some View {
-        List(viewModel.allUsers) { user in
+        List(displayMembers) { user in
             HStack(spacing: 12) {
                 // Avatar
                 AvatarView(user: user, size: 35, displayOnl: true)
@@ -81,6 +96,10 @@ struct GroupInfoView: View {
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
+                Spacer()
+                Text(user.id == group?.adminId ? "Admin" : "Member")
+                    .font(.caption)
+                    .foregroundColor(.gray)
             }
         }
         .listStyle(.plain)

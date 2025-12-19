@@ -9,7 +9,9 @@ import SwiftUI
 import FirebaseAuth
 
 struct GroupChatView: View {
-    @StateObject var viewModel = GroupChatViewModel()
+    let group: ChatGroup?
+    
+    @StateObject var viewModel : GroupChatViewModel
     
     @EnvironmentObject var authModel : AuthViewModel
     @Environment(\.dismiss) var dismiss
@@ -18,6 +20,15 @@ struct GroupChatView: View {
     @State private var text = ""
     @State private var replyingMessage: Message? = nil
     @State private var showGroupInfo = false
+    
+    // Typing count
+    @State private var typingTimer: Timer?
+    
+    init(group: ChatGroup? = nil) {
+        self.group = group
+        // Khởi tạo ViewModel với groupId tương ứng
+        _viewModel = StateObject(wrappedValue: GroupChatViewModel(groupId: group?.id))
+    }
     
     private var currentUserId: String {
         return Auth.auth().currentUser?.uid ?? ""
@@ -30,6 +41,22 @@ struct GroupChatView: View {
             
             // Message List
             messageListView
+            
+            // Typing
+            if !viewModel.typingUserNames.isEmpty {
+                HStack(spacing: 4) {
+                    TypingIndicator()
+                    
+                    Text(typingText)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                        .italic()
+                    
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 4)
+            }
             
             // Input View
             InputMessageView(
@@ -50,7 +77,10 @@ struct GroupChatView: View {
         }
         .navigationBarBackButtonHidden(true) // Ẩn nút "< Message" mặc định
         .sheet(isPresented: $showGroupInfo) {
-            GroupInfoView(viewModel: viewModel)
+            GroupInfoView(group: group, viewModel: viewModel)
+        }
+        .onChange(of: viewModel.text) { _ ,newValue in
+            handleTyping(text: newValue)
         }
     }
 }
@@ -75,7 +105,7 @@ extension GroupChatView {
             GroupAvatarView()
             // Thông tin Nhóm
             VStack(alignment: .leading, spacing: 2) {
-                Text("Nhóm Chat Chung")
+                Text(group?.name ?? "Group Chat")
                     .font(.headline)
                     .foregroundColor(.primary)
                 
@@ -102,30 +132,68 @@ extension GroupChatView {
         }
         .padding()
         .background(.regularMaterial)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 5)
         .zIndex(1)
     }
     
     // Tách phần danh sách tin nhắn ra riêng
     private var messageListView: some View {
+        
         ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack {
-                    ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
-                        messageItem(at: index, message: message)
+            if viewModel.messages.isEmpty{
+                Spacer()
+                Text("Send a message to start a conversation")
+                    .font(.caption)
+                    .foregroundStyle(Color.gray)
+                Spacer()
+            }else{
+                ScrollView {
+                    LazyVStack {
+                        ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
+                            messageItem(at: index, message: message)
+                        }
                     }
+                    .padding()
                 }
-                .padding()
-            }
-            // Màu nền vùng chat
-            .background(Color(.systemGray6).opacity(0.3))
-            .onChange(of: viewModel.messages.count) {
-                if let lastMessage = viewModel.messages.last {
-                    withAnimation {
-                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                    }
+                // Màu nền vùng chat
+                .background(Color(.systemGray6).opacity(0.3))
+                // Cuộn khi mới vào màn hình
+                .onAppear {
+                    ChatUtils.scrollToBottom(proxy: proxy, messages: viewModel.messages)
                 }
             }
+        }
+        
+    }
+    
+    var typingText: String {
+        let names = viewModel.typingUserNames
+        if names.count == 1 {
+            return "\(names.first!) is typing..."
+        } else if names.count == 2 {
+            return "\(names[0]) and \(names[1]) are typing..."
+        } else {
+            return "Several people are typing..."
+        }
+    }
+    
+    // Logic xử lý gửi trạng thái
+    func handleTyping(text: String) {
+        // Nếu ô nhập trống thì gửi false
+        if text.isEmpty {
+            viewModel.sendTypingStatus(isTyping: false)
+            typingTimer?.invalidate()
+            return
+        }
+        
+        // Nếu đang gõ thì gửi true
+        viewModel.sendTypingStatus(isTyping: true)
+        
+        // Hủy timer cũ (nếu có)
+        typingTimer?.invalidate()
+        
+        // Nếu sau 2 giây không gõ gì thêm thì tự gửi false
+        typingTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+            viewModel.sendTypingStatus(isTyping: false)
         }
     }
     
@@ -140,7 +208,7 @@ extension GroupChatView {
     }
     @ViewBuilder
     private func messageItem(at index: Int, message: Message) -> some View {
-        if shouldShowHeader(at: index, messages: viewModel.messages) {
+        if ChatUtils.shouldShowHeader(at: index, messages: viewModel.messages) {
             DateHeaderView(date: message.timestamp)
         }
         

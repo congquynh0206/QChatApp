@@ -14,7 +14,7 @@ struct MessageRow: View {
     @State private var showViewer = false               // Xem ảnh
     @State private var showHeartAnimation = false       // Tim bay
     @State private var showReactionList = false         //Detail react
-
+    
     var onReply: (Message) -> Void = { _ in }
     var onReaction: (Message, String) -> Void = { _, _ in }
     var cancelReaction: (Message) -> Void = { _ in }
@@ -22,7 +22,7 @@ struct MessageRow: View {
     var onAppear: (Message) -> Void = { _ in }
     
     var body: some View {
-        HStack(alignment: .center) { 
+        HStack(alignment: .center) {
             if isMe { Spacer() }
             
             // Avatar (Trái)
@@ -76,18 +76,20 @@ struct MessageRow: View {
                                 .transition(.scale.combined(with: .opacity)) // Hiệu ứng phóng to + mờ dần
                         }
                     }.onTapGesture(count: 2) {
-                        // Gọi hàm thả tim
-                        onReaction(message, "❤️")
-                        
-                        // Kích hoạt hiệu ứng
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                            showHeartAnimation = true
-                        }
-                        
-                        // Tắt hiệu ứng sau 1 giây
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            withAnimation {
-                                showHeartAnimation = false
+                        if message.type != .unsent{
+                            // Gọi hàm thả tim
+                            onReaction(message, "❤️")
+                            
+                            // Kích hoạt hiệu ứng
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                showHeartAnimation = true
+                            }
+                            
+                            // Tắt hiệu ứng sau 1 giây
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                withAnimation {
+                                    showHeartAnimation = false
+                                }
                             }
                         }
                     }
@@ -107,32 +109,34 @@ struct MessageRow: View {
                 
                 // Tương tác
                 .contextMenu {
-                    
-                    if isMe && message.type != .unsent {
-                        Button(role: .destructive) {
-                            onUnsend(message)
-                        } label: {
-                            Label("Recall", systemImage: "trash")
+                    if message.type != .unsent{
+                        
+                        if isMe  {
+                            Button(role: .destructive) {
+                                onUnsend(message)
+                            } label: {
+                                Label("Recall", systemImage: "trash")
+                            }
+                            Divider()
                         }
+                        
+                        // Nút Reply
+                        Button {
+                            onReply(message)
+                        } label: {
+                            Label("Reply", systemImage: "arrowshape.turn.up.left")
+                        }
+                        
                         Divider()
+                        
+                        // Nút thả tim/haha
+                        Button("❤️ Love") { onReaction(message, "❤️") }
+                        Button("😆 Haha") { onReaction(message, "😆") }
+                        Button("😮 Wow")  { onReaction(message, "😮") }
+                        Button("😢 Sad")  { onReaction(message, "😢") }
+                        Button("😡 Angry"){ onReaction(message, "😡") }
+                        Button ("Cancel Reaction"){cancelReaction(message)}
                     }
-                    
-                    // Nút Reply
-                    Button {
-                        onReply(message)
-                    } label: {
-                        Label("Reply", systemImage: "arrowshape.turn.up.left")
-                    }
-                    
-                    Divider()
-                    
-                    // Nút thả tim/haha
-                    Button("❤️ Love") { onReaction(message, "❤️") }
-                    Button("😆 Haha") { onReaction(message, "😆") }
-                    Button("😮 Wow")  { onReaction(message, "😮") }
-                    Button("😢 Sad")  { onReaction(message, "😢") }
-                    Button("😡 Angry"){ onReaction(message, "😡") }
-                    Button ("Cancel Reaction"){cancelReaction(message)}
                 }
                 // Thời gian
                 Text("\(message.timestamp.formatted(.dateTime.hour().minute()))")
@@ -191,7 +195,7 @@ struct MessageRow: View {
                     .cornerRadius(16)
                     .clipped()
             }
-        
+            
         case .unsent:
             Text("Message has been unsent")
                 .font(.system(size: 14, weight: .light, design: .serif))
