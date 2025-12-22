@@ -21,6 +21,9 @@ struct GroupChatView: View {
     @State private var replyingMessage: Message? = nil
     @State private var showGroupInfo = false
     
+    // poll
+    @State private var showCreatePoll = false
+    
     // Typing count
     @State private var typingTimer: Timer?
     
@@ -79,6 +82,11 @@ struct GroupChatView: View {
         .sheet(isPresented: $showGroupInfo) {
             GroupInfoView(group: group, viewModel: viewModel, onLeaveOrDelete: { dismiss() } )
         }
+        .sheet(isPresented: $showCreatePoll) {
+            CreatePollView { question, options, allowMultiple in
+                viewModel.sendPoll(question: question, options: options, allowMultiple: allowMultiple)
+            }
+        }
         .onChange(of: viewModel.text) { _ ,newValue in
             handleTyping(text: newValue)
         }
@@ -128,6 +136,13 @@ extension GroupChatView {
             }
             
             Spacer()
+           
+            Button {
+                showCreatePoll = true
+            } label: {
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .foregroundColor(.blue)
+            }
             
             Button {
                 showGroupInfo = true
@@ -268,6 +283,9 @@ extension GroupChatView {
                 },
                 onPin: { msg in
                     viewModel.pinMessage(message: msg)
+                },
+                onVote: { msg, optionId in
+                    viewModel.handleVote(message: msg, optionId: optionId)
                 }
             )
             

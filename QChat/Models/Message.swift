@@ -13,6 +13,7 @@ enum MessageType: String, Codable {
     case image
     case unsent
     case system
+    case poll
 }
 
 struct Message: Identifiable, Codable {
@@ -39,6 +40,8 @@ struct Message: Identifiable, Codable {
     
     var readBy: [String]?
     
+    var poll: Poll?
+    
     // React
     var reacts : [String:String]?
     
@@ -62,6 +65,9 @@ struct Message: Identifiable, Codable {
         
         if let readBy = readBy {
             dict["readBy"] = readBy
+        }
+        if let poll = poll {
+            dict["poll"] = poll
         }
         
         return dict

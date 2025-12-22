@@ -23,6 +23,8 @@ struct MessageRow: View {
     var onAppear: (Message) -> Void = { _ in }
     var onPin: (Message) -> Void = { _ in }
     
+    var onVote: (Message, String) -> Void = { _, _ in }
+    
     var body: some View {
         HStack(alignment: .center) {
             
@@ -135,7 +137,23 @@ struct MessageRow: View {
                     // Tương tác
                     .contextMenu {
                         if message.type != .unsent{
-                            
+                            if message.type != .poll {
+                                // Ghim
+                                if isAdmin {
+                                    Button {
+                                        onPin(message)
+                                    } label: {
+                                        Label("Pin Message", systemImage: "pin")
+                                    }
+                                }
+                                
+                                // Nút Reply
+                                Button {
+                                    onReply(message)
+                                } label: {
+                                    Label("Reply", systemImage: "arrowshape.turn.up.left")
+                                }
+                            }
                             // Thu hồi
                             if isMe  {
                                 Button(role: .destructive) {
@@ -145,25 +163,11 @@ struct MessageRow: View {
                                 }
                                 Divider()
                             }
-                            // Ghim
-                            if isAdmin {
-                                Button {
-                                    onPin(message)
-                                } label: {
-                                    Label("Pin Message", systemImage: "pin")
-                                }
-                            }
                             
-                            // Nút Reply
-                            Button {
-                                onReply(message)
-                            } label: {
-                                Label("Reply", systemImage: "arrowshape.turn.up.left")
-                            }
                             
                             Divider()
                             
-                            // Nút thả react
+                            //Nút thả react
                             Button("❤️ Love") { onReaction(message, "❤️") }
                             Button("😆 Haha") { onReaction(message, "😆") }
                             Button("😮 Wow")  { onReaction(message, "😮") }
@@ -246,6 +250,13 @@ struct MessageRow: View {
                 )
         case .system:
             EmptyView()
+            
+        case .poll:
+            if let poll = message.poll {
+                PollMessageView(poll: poll) { optionId in
+                    onVote(message, optionId)
+                }
+            }
         }
         
     }

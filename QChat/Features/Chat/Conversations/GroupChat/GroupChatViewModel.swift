@@ -64,6 +64,7 @@ class GroupChatViewModel: ObservableObject {
         case .image: previewContent = "[Photo]"
         case .sticker: previewContent = "[Sticker]"
         case .unsent: return
+        case .poll : return
         }
         
         let data: [String: Any] = [
@@ -217,10 +218,107 @@ class GroupChatViewModel: ObservableObject {
                     
                     let readBy = data["readBy"] as? [String]
                     
-                    return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp, userAvatarUrl: userAvatarUrl, replyText: replyText, replyUser: replyUser,readBy: readBy, reacts: reactions)
+                    var pollData: Poll? = nil
+                    if let pollDict = data["poll"] as? [String: Any], type == .poll {
+                        // Parse thủ công hoặc dùng JSONDecoder
+                        let question = pollDict["question"] as? String ?? ""
+                        let allowMultiple = pollDict["allowMultipleVotes"] as? Bool ?? false
+                        
+                        var options: [PollOption] = []
+                        if let optionsArray = pollDict["options"] as? [[String: Any]] {
+                            for opt in optionsArray {
+                                let optId = opt["id"] as? String ?? UUID().uuidString
+                                let optText = opt["text"] as? String ?? ""
+                                let voters = opt["voterIds"] as? [String] ?? []
+                                options.append(PollOption(id: optId, text: optText, voterIds: voters))
+                            }
+                        }
+                        pollData = Poll(question: question, options: options, allowMultipleVotes: allowMultiple)
+                    }
+                    
+                    return Message(id: id, text: text, type: type, photoWidth: pWidth, photoHeight: pHeight, userId: userId, userName: userName, timestamp: timestamp, userAvatarUrl: userAvatarUrl, replyText: replyText, replyUser: replyUser,readBy: readBy, poll: pollData, reacts: reactions)
                 }
             }
         subscribeToTypingStatus()
+    }
+    
+    // Gửi poll
+    func sendPoll(question: String, options: [String], allowMultiple: Bool) {
+        guard let currentUid = Auth.auth().currentUser?.uid else { return }
+        
+        // Chuẩn bị dữ liệu Poll
+        let pollOptions = options.map { PollOption(text: $0) }
+        
+        // Convert sang Dictionary để lưu Firestore
+        let optionsData = pollOptions.map {
+            ["id": $0.id, "text": $0.text, "voterIds": []]
+        }
+        
+        let pollData: [String: Any] = [
+            "question": question,
+            "options": optionsData,
+            "allowMultipleVotes": allowMultiple
+        ]
+        
+        // Tạo data tin nhắn
+        let data: [String: Any] = [
+            "text": "Poll: \(question)", // Text hiển thị thông báo
+            "type": "poll",
+            "userId": currentUid,
+            "userName": currentUserName,
+            "userAvatarUrl": currentUserAvatarUrl,
+            "timestamp": Timestamp(date: Date()),
+            "poll": pollData
+        ]
+        
+        // Gửi lên Firestore
+        db.collection("groups").document(groupId).collection("messages").addDocument(data: data)
+        
+        // Update latest message cho Group
+        db.collection("groups").document(groupId).updateData([
+            "latestMessage": "Poll: \(question)",
+            "updatedAt": Timestamp(date: Date())
+        ])
+    }
+    
+    // Xử lý vote poll
+    func handleVote(message: Message, optionId: String) {
+        guard let currentPoll = message.poll, let currentUid = Auth.auth().currentUser?.uid else { return }
+        
+        var newOptions = currentPoll.options
+        
+        // Tìm index của option được bấm
+        guard let index = newOptions.firstIndex(where: { $0.id == optionId }) else { return }
+        
+        let isVoted = newOptions[index].voterIds.contains(currentUid)
+        
+        if isVoted {
+            // Đã vote rồi -> Bấm lần nữa là huỷ vote
+            newOptions[index].voterIds.removeAll { $0 == currentUid }
+        } else {
+            // Chưa vote -> Xử lý thêm vote
+            
+            if !currentPoll.allowMultipleVotes {
+                // Nếu là Single Choice thì phải xoá vote ở các option khác trước
+                for i in 0..<newOptions.count {
+                    if newOptions[i].voterIds.contains(currentUid) {
+                        newOptions[i].voterIds.removeAll { $0 == currentUid }
+                    }
+                }
+            }
+            // Thêm id mình vào option này
+            newOptions[index].voterIds.append(currentUid)
+        }
+        
+        // Cập nhật lại Firestore
+        let updatedOptionsData = newOptions.map {
+            ["id": $0.id, "text": $0.text, "voterIds": $0.voterIds]
+        }
+        
+        // Chỉ update trường "options" bên trong field "poll"
+        db.collection("groups").document(groupId).collection("messages").document(message.id).updateData([
+            "poll.options": updatedOptionsData
+        ])
     }
     
     // Hàm gửi Text
