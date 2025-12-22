@@ -17,6 +17,10 @@ class GroupChatViewModel: ObservableObject {
     @Published var allUsers: [User] = []
     @Published var typingUserNames: [String] = []
     
+    @Published var pinnedMessageId: String? = nil
+    @Published var pinnedMessageContent: String? = nil
+    
+    
     let groupId: String? // Lưu ID nhóm hiện tại
     
     private let db = Firestore.firestore()
@@ -40,7 +44,58 @@ class GroupChatViewModel: ObservableObject {
         fetchCurrentUserProfile()
         fetchMessages()
         fetchAllUsers()
+        listenToGroupUpdates()
     }
+    
+    // Hàm lănggs nghe để thay đổi
+    func listenToGroupUpdates() {
+        guard let gid = groupId else { return }
+        
+        db.collection("groups").document(gid).addSnapshotListener { snapshot, error in
+            guard let data = snapshot?.data() else { return }
+            
+            DispatchQueue.main.async {
+                // Cập nhật state ghim
+                self.pinnedMessageId = data["pinnedMessageId"] as? String
+                self.pinnedMessageContent = data["pinnedMessageContent"] as? String
+            }
+        }
+    }
+    
+    // Hàm Ghim tin nhắn
+    func pinMessage(message: Message) {
+        guard let gid = groupId else { return }
+        // Xác định nội dung hiển thị text hoặc photo
+        var previewContent = ""
+        switch message.type {
+        case .text, .system: previewContent = message.text
+        case .image: previewContent = "[Photo]"
+        case .sticker: previewContent = "[Sticker]"
+        case .unsent: return
+        }
+        
+        let data: [String: Any] = [
+            "pinnedMessageId": message.id,
+            "pinnedMessageContent": previewContent
+        ]
+        
+        db.collection("groups").document(gid).updateData(data)
+    }
+    
+    // Hàm Gỡ ghim
+    func unpinMessage() {
+        guard let gid = groupId else { return }
+        
+        let data: [String: Any] = [
+            "pinnedMessageId": FieldValue.delete(),
+            "pinnedMessageContent": FieldValue.delete()
+        ]
+        
+        db.collection("groups")
+            .document(gid)
+            .updateData(data)
+    }
+
     
     // Hàm lắng nghe trạng thái gõ
     func subscribeToTypingStatus() {

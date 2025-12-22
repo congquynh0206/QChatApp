@@ -15,6 +15,8 @@ struct ChatGroup: Identifiable, Codable {
     var members: [String]        // Danh sách ID thành viên
     var latestMessage: String
     var updatedAt: Date
+    var pinnedMessageId : String?
+    var pinnedMessageContent : String?
     
     // Convert sang Dictionary để lưu lên Firebase
     var dictionary: [String: Any] {
@@ -45,6 +47,9 @@ extension ChatGroup {
         self.adminId = adminId
         self.avatarUrl = dictionary["avatarUrl"] as? String ?? ""
         self.latestMessage = dictionary["latestMessage"] as? String ?? ""
+        
+        self.pinnedMessageId = dictionary["pinnedMessageId"] as? String
+        self.pinnedMessageContent = dictionary["pinnedMessageContent"] as? String
         
         if let timestamp = dictionary["updatedAt"] as? Timestamp {
             self.updatedAt = timestamp.dateValue()

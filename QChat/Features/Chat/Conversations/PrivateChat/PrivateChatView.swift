@@ -153,6 +153,7 @@ extension PrivateChatView {
             MessageRow(
                 message: message,
                 isMe: message.userId == currentUserId,
+                isAdmin: false,
                 user: viewModel.partner,
                 onReply: { msg in
                     self.replyingMessage = msg

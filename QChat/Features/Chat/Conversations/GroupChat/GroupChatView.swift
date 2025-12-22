@@ -87,7 +87,13 @@ struct GroupChatView: View {
 
 extension GroupChatView {
     
-    // Tách phần Header ra riêng
+    // Check xem phải admin ko
+    private var isCurrentUserAdmin: Bool {
+        guard let grp = group, let uid = Auth.auth().currentUser?.uid else { return false }
+        return grp.adminId == uid
+    }
+    
+    // Tách phần Header ra
     private var headerView: some View {
         HStack(spacing: 15) {
             
@@ -139,26 +145,46 @@ extension GroupChatView {
     private var messageListView: some View {
         
         ScrollViewReader { proxy in
-            if viewModel.messages.isEmpty{
-                Spacer()
-                Text("Send a message to start a conversation")
-                    .font(.caption)
-                    .foregroundStyle(Color.gray)
-                Spacer()
-            }else{
-                ScrollView {
-                    LazyVStack {
-                        ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
-                            messageItem(at: index, message: message)
+            VStack(spacing : 0){
+                if let pinnedContent = viewModel.pinnedMessageContent,
+                   let pinnedId = viewModel.pinnedMessageId {
+                    
+                    PinnedMessageBar(
+                        content: pinnedContent,
+                        onTap: {
+                            withAnimation {
+                                proxy.scrollTo(pinnedId, anchor: .center)
+                            }
+                        },
+                        onUnpin: {
+                            viewModel.unpinMessage()
                         }
-                    }
-                    .padding()
+                    )
+                    .padding(.top, 4)
+                    .zIndex(2) 
                 }
-                // Màu nền vùng chat
-                .background(Color(.systemGray6).opacity(0.3))
-                // Cuộn khi mới vào màn hình
-                .onAppear {
-                    ChatUtils.scrollToBottom(proxy: proxy, messages: viewModel.messages)
+                // Nếu chưa nhắn tin nào thì hiện
+                if viewModel.messages.isEmpty{
+                    Spacer()
+                    Text("Send a message to start a conversation")
+                        .font(.caption)
+                        .foregroundStyle(Color.gray)
+                    Spacer()
+                }else{
+                    ScrollView {
+                        LazyVStack {
+                            ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
+                                messageItem(at: index, message: message)
+                            }
+                        }
+                        .padding()
+                    }
+                
+                    .background(Color(.systemGray6).opacity(0.3))
+                    // Cuộn khi mới vào màn hình
+                    .onAppear {
+                        ChatUtils.scrollToBottom(proxy: proxy, messages: viewModel.messages)
+                    }
                 }
             }
         }
@@ -216,6 +242,7 @@ extension GroupChatView {
             MessageRow(
                 message: message,
                 isMe: message.userId == currentUserId,
+                isAdmin: isCurrentUserAdmin,
                 user: getAuthor(for: message),
                 onReply: { msg in
                     self.replyingMessage = msg
@@ -234,6 +261,9 @@ extension GroupChatView {
                     if msg.userId != currentUserId {
                         viewModel.markMessageAsRead(message: msg)
                     }
+                },
+                onPin: { msg in
+                    viewModel.pinMessage(message: msg)
                 }
             )
             

@@ -9,6 +9,7 @@ import SwiftUI
 struct MessageRow: View {
     let message: Message
     let isMe: Bool
+    let isAdmin : Bool
     var user : User?
     
     @State private var showViewer = false               // Xem ảnh
@@ -20,6 +21,7 @@ struct MessageRow: View {
     var cancelReaction: (Message) -> Void = { _ in }
     var onUnsend: (Message) -> Void = { _ in }
     var onAppear: (Message) -> Void = { _ in }
+    var onPin: (Message) -> Void = { _ in }
     
     var body: some View {
         HStack(alignment: .center) {
@@ -134,6 +136,7 @@ struct MessageRow: View {
                     .contextMenu {
                         if message.type != .unsent{
                             
+                            // Thu hồi
                             if isMe  {
                                 Button(role: .destructive) {
                                     onUnsend(message)
@@ -141,6 +144,14 @@ struct MessageRow: View {
                                     Label("Recall", systemImage: "trash")
                                 }
                                 Divider()
+                            }
+                            // Ghim
+                            if isAdmin {
+                                Button {
+                                    onPin(message)
+                                } label: {
+                                    Label("Pin Message", systemImage: "pin")
+                                }
                             }
                             
                             // Nút Reply
@@ -152,7 +163,7 @@ struct MessageRow: View {
                             
                             Divider()
                             
-                            // Nút thả tim/haha
+                            // Nút thả react
                             Button("❤️ Love") { onReaction(message, "❤️") }
                             Button("😆 Haha") { onReaction(message, "😆") }
                             Button("😮 Wow")  { onReaction(message, "😮") }
