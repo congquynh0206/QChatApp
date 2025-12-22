@@ -12,6 +12,7 @@ enum MessageType: String, Codable {
     case sticker
     case image
     case unsent
+    case system
 }
 
 struct Message: Identifiable, Codable {

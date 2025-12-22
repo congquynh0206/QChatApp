@@ -23,132 +23,155 @@ struct MessageRow: View {
     
     var body: some View {
         HStack(alignment: .center) {
-            if isMe { Spacer() }
             
-            // Avatar (Trái)
-            if !isMe {
-                AvatarView(user: user, size: 35, displayOnl: true)
-            }
-            
-            VStack(alignment: isMe ? .trailing : .leading, spacing: 2) {
-                // Tên người gửi
-                if !isMe {
-                    Text(message.userName)
+            if message.type == .system {
+                // tin nhắn system
+                HStack {
+                    Spacer()
+                    Text(message.text)
                         .font(.caption)
                         .foregroundColor(.gray)
-                        .padding(.leading, 5)
+                        .multilineTextAlignment(.center)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(
+                            Capsule()
+                                .fill(Color.gray.opacity(0.1)) // Nền mờ nhẹ
+                        )
+                    Spacer()
+                }
+                .padding(.bottom, 4)
+                .id(message.id)
+                
+            } else{
+                // tin nhắn bình thường
+                if isMe { Spacer() }
+                
+                // Avatar (Trái)
+                if !isMe {
+                    AvatarView(user: user, size: 35, displayOnl: true)
                 }
                 
-                // Hiển thị reply (Nếu có)
-                if let replyText = message.replyText, let replyUser = message.replyUser {
-                    HStack {
-                        Capsule()
-                            .fill(Color.gray.opacity(0.5))
-                            .frame(width: 2)
-                        
-                        VStack(alignment: .leading) {
-                            Text(replyUser)
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.gray)
-                            Text(replyText)
-                                .font(.caption2)
-                                .foregroundColor(.gray.opacity(0.8))
-                                .lineLimit(1)
-                        }
+                VStack(alignment: isMe ? .trailing : .leading, spacing: 2) {
+                    // Tên người gửi
+                    if !isMe {
+                        Text(message.userName)
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .padding(.leading, 5)
                     }
-                    .padding(.bottom, 2)
-                    // Nếu là mình thì căn phải, người khác căn trái
-                    .frame(maxWidth: 200, alignment: isMe ? .trailing : .leading)
-                }
-                
-                // Nội dung tnhan
-                ZStack(alignment: .bottomTrailing) {
-                    ZStack(alignment: .center) {
-                        // Tin nhắn
-                        messageContent
-                        
-                        // Hiệu ứng trái tim bay khi double tap
-                        if showHeartAnimation {
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 35)) // Tim to
-                                .foregroundStyle(Color.red)
-                                .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 5)
-                                .transition(.scale.combined(with: .opacity)) // Hiệu ứng phóng to + mờ dần
-                        }
-                    }.onTapGesture(count: 2) {
-                        if message.type != .unsent{
-                            // Gọi hàm thả tim
-                            onReaction(message, "❤️")
+                    
+                    // Hiển thị reply (Nếu có)
+                    if let replyText = message.replyText, let replyUser = message.replyUser {
+                        HStack {
+                            Capsule()
+                                .fill(Color.gray.opacity(0.5))
+                                .frame(width: 2)
                             
-                            // Kích hoạt hiệu ứng
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                                showHeartAnimation = true
+                            VStack(alignment: .leading) {
+                                Text(replyUser)
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.gray)
+                                Text(replyText)
+                                    .font(.caption2)
+                                    .foregroundColor(.gray.opacity(0.8))
+                                    .lineLimit(1)
                             }
+                        }
+                        .padding(.bottom, 2)
+                        // Nếu là mình thì căn phải, người khác căn trái
+                        .frame(maxWidth: 200, alignment: isMe ? .trailing : .leading)
+                    }
+                    
+                    // Nội dung tnhan
+                    ZStack(alignment: .bottomTrailing) {
+                        ZStack(alignment: .center) {
+                            // Tin nhắn
+                            messageContent
                             
-                            // Tắt hiệu ứng sau 1 giây
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                withAnimation {
-                                    showHeartAnimation = false
+                            // Hiệu ứng trái tim bay khi double tap
+                            if showHeartAnimation {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 35)) // Tim to
+                                    .foregroundStyle(Color.red)
+                                    .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 5)
+                                    .transition(.scale.combined(with: .opacity)) // Hiệu ứng phóng to + mờ dần
+                            }
+                        }.onTapGesture(count: 2) {
+                            if message.type != .unsent{
+                                // Gọi hàm thả tim
+                                onReaction(message, "❤️")
+                                
+                                // Kích hoạt hiệu ứng
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                                    showHeartAnimation = true
+                                }
+                                
+                                // Tắt hiệu ứng sau 1 giây
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                    withAnimation {
+                                        showHeartAnimation = false
+                                    }
                                 }
                             }
                         }
-                    }
-                    
-                    // Icon react
-                    if let reactions = message.reacts, !reactions.isEmpty {
-                        Button {
-                            showReactionList = true
-                        } label: {
-                            reactionView(reactions: reactions)
-                        }
-                        .buttonStyle(PlainButtonStyle()) // Bỏ hiệu ứng nháy của button
-                        .offset(x: 0, y: 10)
-                    }
-                    
-                }
-                
-                // Tương tác
-                .contextMenu {
-                    if message.type != .unsent{
                         
-                        if isMe  {
-                            Button(role: .destructive) {
-                                onUnsend(message)
+                        // Icon react
+                        if let reactions = message.reacts, !reactions.isEmpty {
+                            Button {
+                                showReactionList = true
                             } label: {
-                                Label("Recall", systemImage: "trash")
+                                reactionView(reactions: reactions)
                             }
-                            Divider()
+                            .buttonStyle(PlainButtonStyle()) // Bỏ hiệu ứng nháy của button
+                            .offset(x: 0, y: 10)
                         }
                         
-                        // Nút Reply
-                        Button {
-                            onReply(message)
-                        } label: {
-                            Label("Reply", systemImage: "arrowshape.turn.up.left")
-                        }
-                        
-                        Divider()
-                        
-                        // Nút thả tim/haha
-                        Button("❤️ Love") { onReaction(message, "❤️") }
-                        Button("😆 Haha") { onReaction(message, "😆") }
-                        Button("😮 Wow")  { onReaction(message, "😮") }
-                        Button("😢 Sad")  { onReaction(message, "😢") }
-                        Button("😡 Angry"){ onReaction(message, "😡") }
-                        Button ("Cancel Reaction"){cancelReaction(message)}
                     }
+                    
+                    // Tương tác
+                    .contextMenu {
+                        if message.type != .unsent{
+                            
+                            if isMe  {
+                                Button(role: .destructive) {
+                                    onUnsend(message)
+                                } label: {
+                                    Label("Recall", systemImage: "trash")
+                                }
+                                Divider()
+                            }
+                            
+                            // Nút Reply
+                            Button {
+                                onReply(message)
+                            } label: {
+                                Label("Reply", systemImage: "arrowshape.turn.up.left")
+                            }
+                            
+                            Divider()
+                            
+                            // Nút thả tim/haha
+                            Button("❤️ Love") { onReaction(message, "❤️") }
+                            Button("😆 Haha") { onReaction(message, "😆") }
+                            Button("😮 Wow")  { onReaction(message, "😮") }
+                            Button("😢 Sad")  { onReaction(message, "😢") }
+                            Button("😡 Angry"){ onReaction(message, "😡") }
+                            Button ("Cancel Reaction"){cancelReaction(message)}
+                        }
+                    }
+                    // Thời gian
+                    Text("\(message.timestamp.formatted(.dateTime.hour().minute()))")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 4)
+                        .padding(.top, (message.reacts?.isEmpty ?? true) ? 2 : 20)
+                    
                 }
-                // Thời gian
-                Text("\(message.timestamp.formatted(.dateTime.hour().minute()))")
-                    .font(.caption2)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal, 4)
-                    .padding(.top, (message.reacts?.isEmpty ?? true) ? 2 : 20)
                 
+                if !isMe { Spacer() }
             }
-            
-            if !isMe { Spacer() }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
@@ -166,6 +189,7 @@ struct MessageRow: View {
             onAppear(message)
         }
     }
+    
     
     // Tách nội dung tin nhắn ra cho gọn
     @ViewBuilder
@@ -209,6 +233,8 @@ struct MessageRow: View {
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                 )
+        case .system:
+            EmptyView()
         }
         
     }

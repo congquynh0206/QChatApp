@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct GroupInfoView: View {
     
@@ -21,6 +22,14 @@ struct GroupInfoView: View {
     // Xử lý xem ảnh
     @State private var showImageViewer = false
     @State private var selectedImageName = ""
+    
+    @State private var showEditGroupSheet = false
+    
+    // Helper check admin
+    private var isCurrentUserAdmin: Bool {
+        guard let grp = group, let currentUid = Auth.auth().currentUser?.uid else { return false }
+        return grp.adminId == currentUid
+    }
     
     var displayMembers: [User] {
         if let currentGroup = group {
@@ -58,9 +67,26 @@ struct GroupInfoView: View {
             .navigationTitle(group?.name ?? "Group Information")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
+                if isCurrentUserAdmin {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            showEditGroupSheet = true
+                        } label: {
+                            Text("Edit")
+                                .bold()
+                        }
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Close") {
                         dismiss()
+                    }
+                }
+            }
+            .sheet(isPresented: $showEditGroupSheet) {
+                if let grp = group {
+                    EditGroupView(group: grp) {
                     }
                 }
             }
