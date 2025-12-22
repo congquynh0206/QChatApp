@@ -27,7 +27,7 @@ struct GroupChatView: View {
     init(group: ChatGroup ) {
         self.group = group
         // Khởi tạo ViewModel với groupId tương ứng
-        _viewModel = StateObject(wrappedValue: GroupChatViewModel(groupId: group.id))
+        _viewModel = StateObject(wrappedValue: GroupChatViewModel(groupId: group.id, initialMemberIds: group.members))
     }
     
     private var currentUserId: String {
@@ -77,11 +77,12 @@ struct GroupChatView: View {
         }
         .navigationBarBackButtonHidden(true) // Ẩn nút "< Message" mặc định
         .sheet(isPresented: $showGroupInfo) {
-            GroupInfoView(group: group, viewModel: viewModel)
+            GroupInfoView(group: group, viewModel: viewModel, onLeaveOrDelete: { dismiss() } )
         }
         .onChange(of: viewModel.text) { _ ,newValue in
             handleTyping(text: newValue)
         }
+        
     }
 }
 
@@ -183,6 +184,9 @@ extension GroupChatView {
                     .background(Color(.systemGray6).opacity(0.3))
                     // Cuộn khi mới vào màn hình
                     .onAppear {
+                        ChatUtils.scrollToBottom(proxy: proxy, messages: viewModel.messages)
+                    }
+                    .onChange(of: viewModel.messages.count) {
                         ChatUtils.scrollToBottom(proxy: proxy, messages: viewModel.messages)
                     }
                 }

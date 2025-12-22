@@ -56,11 +56,11 @@ struct EditGroupView: View {
                             .buttonStyle(BorderlessButtonStyle()) // Tránh click nhầm row
                             
                         } else {
-                            // User chưa trong nhóm -> Hiển thị Checkbox để thêm
+                            // User chưa trong nhóm thì hiển thị Checkbox để thêm
                             Button {
                                 viewModel.toggleNewMemberSelection(userId: user.id)
                             } label: {
-                                Image(systemName: viewModel.selectedNewUserIds.contains(user.id) ? "checkmark.circle.fill" : "circle")
+                                Image(systemName: viewModel.selectedNewUserIds.contains(user.id) ? "plus.circle.fill" : "circle")
                                     .font(.title2)
                                     .foregroundColor(viewModel.selectedNewUserIds.contains(user.id) ? .blue : .gray)
                             }

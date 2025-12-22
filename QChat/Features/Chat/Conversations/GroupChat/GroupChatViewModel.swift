@@ -20,6 +20,8 @@ class GroupChatViewModel: ObservableObject {
     @Published var pinnedMessageId: String? = nil
     @Published var pinnedMessageContent: String? = nil
     
+    @Published var memberIds: [String] = []
+    
     
     let groupId: String // Lưu ID nhóm hiện tại
     
@@ -28,8 +30,9 @@ class GroupChatViewModel: ObservableObject {
     // Listen typing
     private var typingListener: ListenerRegistration?
     
-    init(groupId: String ) {
+    init(groupId: String , initialMemberIds: [String] = []) {
         self.groupId = groupId
+        self.memberIds = initialMemberIds
         fetchCurrentUserProfile()
         fetchMessages()
         fetchAllUsers()
@@ -45,6 +48,9 @@ class GroupChatViewModel: ObservableObject {
                 // Cập nhật state ghim
                 self.pinnedMessageId = data["pinnedMessageId"] as? String
                 self.pinnedMessageContent = data["pinnedMessageContent"] as? String
+                if let updatedMembers = data["members"] as? [String] {
+                    self.memberIds = updatedMembers
+                }
             }
         }
     }
@@ -80,7 +86,7 @@ class GroupChatViewModel: ObservableObject {
             .document(self.groupId)
             .updateData(data)
     }
-
+    
     
     // Hàm lắng nghe trạng thái gõ
     func subscribeToTypingStatus() {
@@ -220,21 +226,21 @@ class GroupChatViewModel: ObservableObject {
     // Hàm gửi Text
     func sendTextMessage(replyTo: Message? = nil) {
         guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return } //trim()
-        performSendMessage(content: text, type: "text", replyTo: replyTo)
+        performSendMessage(content: text, type: "text", replyTo: replyTo , lastestMessage: text)
         self.text = ""
     }
     
     // Hàm gửi Sticker
     func sendSticker(stickerName: String) {
-        performSendMessage(content: stickerName, type: "sticker")
+        performSendMessage(content: stickerName, type: "sticker", lastestMessage: "[Sticker]")
     }
     // Hàm gửi ảnh
     func sendImage(name: String, width: CGFloat, height: CGFloat){
-        performSendMessage(content: name, type: "image", width: width, height: height)
+        performSendMessage(content: name, type: "image", width: width, height: height, lastestMessage: "[Photo]")
     }
     
     // Hàm xử lý chung
-    private func performSendMessage(content: String, type: String, width: CGFloat = 0, height: CGFloat = 0, replyTo: Message? = nil) {
+    private func performSendMessage(content: String, type: String, width: CGFloat = 0, height: CGFloat = 0, replyTo: Message? = nil, lastestMessage : String) {
         guard let currentUserID = Auth.auth().currentUser?.uid else { return }
         
         var data: [String: Any] = [
@@ -257,10 +263,8 @@ class GroupChatViewModel: ObservableObject {
         // Gửi tin nhắn
         db.collection("groups").document(self.groupId).collection("messages").addDocument(data: data)
         
-        let lastMsgPreview = type == "text" ? content : (type == "sticker" ? "[Sticker]" : "[Photo]")
-        
         db.collection("groups").document(self.groupId).updateData([
-            "latestMessage": lastMsgPreview,
+            "latestMessage": lastestMessage,
             "updatedAt": Timestamp(date: Date()) // Cập nhật thời gian để nhảy lên đầu
         ])
         
@@ -327,10 +331,101 @@ class GroupChatViewModel: ObservableObject {
                 if let error = error {
                     print("GroupChatViewModel_6: \(error.localizedDescription)")
                 }
-        }
+            }
     }
     deinit {
         typingListener?.remove()
+    }
+    
+    // Chuyển admin
+    func transferAdminRights(to userId: String, name: String,completion: @escaping (Bool) -> Void) {
+        db.collection("groups").document(groupId).updateData([
+            "adminId": userId
+        ]) { error in
+            if let error = error {
+                print("Error transfer admin: \(error)")
+                completion(false)
+            } else {
+                let msgContent = "Admin rights transferred to \(name)"
+                self.performSendMessage(content: msgContent, type: "system", lastestMessage: msgContent)
+                completion(true)
+            }
+        }
+    }
+    
+    // Rời nhóm
+    func leaveGroup(completion: @escaping (Bool) -> Void) {
+        guard let currentUid = Auth.auth().currentUser?.uid else { return }
+        
+        db.collection("groups").document(groupId).updateData([
+            "members": FieldValue.arrayRemove([currentUid])
+        ]) { error in
+            if let error = error {
+                print("Error leaving group: \(error)")
+                completion(false)
+            } else {
+                self.performSendMessage(content: "\(self.currentUserName) left the group", type: "system", lastestMessage: "\(self.currentUserName) left the group.")
+                completion(true)
+            }
+        }
+    }
+    
+    // Xoá nhóm
+    func deleteGroup(completion: @escaping (Bool) -> Void) {
+        let groupRef = db.collection("groups").document(groupId)
+        
+        // Tạo batch để xử lý xoá hàng loạt
+        let batch = db.batch()
+        
+        // Dùng DispatchGroup để đợi fetch xong dữ liệu từ các sub-collections
+        let dispatchGroup = DispatchGroup()
+        var fetchError: Error?
+        
+        // Lấy và xoá collection 'messages'
+        dispatchGroup.enter()
+        groupRef.collection("messages").getDocuments { snapshot, error in
+            if let error = error { fetchError = error }
+            
+            // Duyệt từng tin nhắn và thêm lệnh xoá vào batch
+            snapshot?.documents.forEach { doc in
+                batch.deleteDocument(doc.reference)
+            }
+            dispatchGroup.leave()
+        }
+        
+        // Lấy và xoá collection 'typing'
+        dispatchGroup.enter()
+        groupRef.collection("typing").getDocuments { snapshot, error in
+            if let error = error { fetchError = error }
+            
+            snapshot?.documents.forEach { doc in
+                batch.deleteDocument(doc.reference)
+            }
+            dispatchGroup.leave()
+        }
+        
+        // Sau khi đã lấy hết dữ liệu con thì thực thi xoá
+        dispatchGroup.notify(queue: .main) {
+            if let error = fetchError {
+                print("Error fetching sub-collections: \(error)")
+                completion(false)
+                return
+            }
+            
+            // Xoá document Group chính
+            batch.deleteDocument(groupRef)
+            
+            // Commit batch - Gửi lệnh lên server
+            batch.commit { error in
+                if let error = error {
+                    print("Error deleting group data: \(error)")
+                    completion(false)
+                } else {
+                    print("Group and all sub-data deleted successfully.")
+                    completion(true)
+                }
+            }
+        }
     }
 }
 

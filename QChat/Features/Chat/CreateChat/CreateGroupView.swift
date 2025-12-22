@@ -36,7 +36,7 @@ struct CreateGroupView: View {
                             Spacer()
                             
                             // Checkbox
-                            Image(systemName: viewModel.selectedUserIds.contains(user.id) ? "checkmark.circle.fill" : "circle")
+                            Image(systemName: viewModel.selectedUserIds.contains(user.id) ? "plus.circle.fill" : "circle")
                                 .font(.title2)
                                 .foregroundColor(viewModel.selectedUserIds.contains(user.id) ? .blue : .gray)
                         }
@@ -67,13 +67,7 @@ struct CreateGroupView: View {
             }
             .overlay {
                 if viewModel.isSaving {
-                    ZStack {
-                        Color.black.opacity(0.2).ignoresSafeArea()
-                        ProgressView("Creating...")
-                            .padding()
-                            .background(.white)
-                            .cornerRadius(10)
-                    }
+                    LoadingView(message: "Creating...")
                 }
             }
         }

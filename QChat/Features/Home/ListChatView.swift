@@ -45,12 +45,14 @@ struct ListChatView: View {
             .navigationDestination(isPresented: $showChat) {
                 if let user = selectedUser {
                     PrivateChatView(partner: user)
+                        .toolbar(.hidden, for: .tabBar)
                 }
             }
             // Điều hướng nhóm mới
             .navigationDestination(isPresented: $navigateToNewGroup) {
                 if let group = newlyCreatedGroup {
                     GroupChatView(group: group)
+                        .toolbar(.hidden, for: .tabBar)
                 }
             }
             // Popup tạo tin nhắn mới

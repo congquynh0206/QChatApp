@@ -25,6 +25,13 @@ struct GroupInfoView: View {
     
     @State private var showEditGroupSheet = false
     
+    // Alert
+    @State private var showLeaveAlert = false
+    @State private var showDeleteAlert = false
+    @State private var showTransferAdminAlert = false
+    
+    var onLeaveOrDelete: (() -> Void)?
+    
     // Helper check admin
     private var isCurrentUserAdmin: Bool {
         guard let currentUid = Auth.auth().currentUser?.uid else { return false }
@@ -33,7 +40,7 @@ struct GroupInfoView: View {
     
     var displayMembers: [User] {
         return viewModel.allUsers.filter { user in
-            group.members.contains(user.id)
+            viewModel.memberIds.contains(user.id)
         }
     }
     
@@ -52,11 +59,50 @@ struct GroupInfoView: View {
                 // Nội dung từng Tab
                 if selectedTab == 0 {
                     membersList
+                    Spacer()
+                    leaveButton
+                        .padding(.bottom, 20)
                 } else if selectedTab == 1 {
                     mediaGallery
                 } else {
                     searchMessageView
                 }
+            }
+            // Là admin k đc rời, phải nhường admin cho ngkhac
+            .alert("Cannot Leave Group", isPresented: $showTransferAdminAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("You are the Admin. Please assign another member as Admin before leaving.")
+            }
+            
+            // Confirm rời
+            .alert("Leave Group", isPresented: $showLeaveAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Leave", role: .destructive) {
+                    viewModel.leaveGroup { success in
+                        if success {
+                            dismiss()
+                            onLeaveOrDelete?() // Báo view cha thoát ra
+                        }
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to leave this group?")
+            }
+            
+            // Xoá nhóm
+            .alert("Delete Group", isPresented: $showDeleteAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) {
+                    viewModel.deleteGroup { success in
+                        if success {
+                            dismiss()
+                            onLeaveOrDelete?()
+                        }
+                    }
+                }
+            } message: {
+                Text("You are the last member. This action will permanently delete the group.")
             }
             .navigationTitle(group.name )
             .navigationBarTitleDisplayMode(.inline)
@@ -120,8 +166,51 @@ struct GroupInfoView: View {
                     .font(.caption)
                     .foregroundColor(.gray)
             }
+            .contextMenu {
+                // Admin mới hiện
+                if isCurrentUserAdmin && user.id != group.adminId {
+                    Button {
+                        viewModel.transferAdminRights(to: user.id, name: user.username) { success in
+                        }
+                    } label: {
+                        Label("Promote to Admin", systemImage: "person.badge.key.fill")
+                    }
+                }
+            }
         }
         .listStyle(.plain)
+    }
+    // nút rời nhóm
+    private var leaveButton: some View {
+        Button {
+            handleLeaveAction()
+        } label: {
+            Text(isCurrentUserAdmin && displayMembers.count == 1 ? "Delete Group" : "Leave Group")
+                .font(.headline)
+                .foregroundColor(.red)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(12)
+                .padding(.horizontal)
+        }
+    }
+    
+    // kiểm tra điều kiện
+    private func handleLeaveAction() {
+        // Là admin
+        if isCurrentUserAdmin {
+            // Còn hơn 1 người thì phải nhường admin
+            if displayMembers.count > 1 {
+                showTransferAdminAlert = true
+            } else {
+                // Chỉ còn 1 mình thì cho phép Xoá nhóm
+                showDeleteAlert = true
+            }
+        } else {
+            // Member thường thì cho phép rời
+            showLeaveAlert = true
+        }
     }
     
     // Tab2: Gallery
