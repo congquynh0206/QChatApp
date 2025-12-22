@@ -10,7 +10,7 @@ import FirebaseAuth
 
 struct GroupInfoView: View {
     
-    var group: ChatGroup?
+    let group: ChatGroup
     
     @ObservedObject var viewModel: GroupChatViewModel
     @Environment(\.dismiss) var dismiss
@@ -27,19 +27,13 @@ struct GroupInfoView: View {
     
     // Helper check admin
     private var isCurrentUserAdmin: Bool {
-        guard let grp = group, let currentUid = Auth.auth().currentUser?.uid else { return false }
-        return grp.adminId == currentUid
+        guard let currentUid = Auth.auth().currentUser?.uid else { return false }
+        return group.adminId == currentUid
     }
     
     var displayMembers: [User] {
-        if let currentGroup = group {
-            // Nhóm riêng: Chỉ lấy user có ID nằm trong danh sách thành viên
-            return viewModel.allUsers.filter { user in
-                currentGroup.members.contains(user.id)
-            }
-        } else {
-            // Nhóm chung (nil): Hiển thị tất cả
-            return viewModel.allUsers
+        return viewModel.allUsers.filter { user in
+            group.members.contains(user.id)
         }
     }
     
@@ -64,7 +58,7 @@ struct GroupInfoView: View {
                     searchMessageView
                 }
             }
-            .navigationTitle(group?.name ?? "Group Information")
+            .navigationTitle(group.name )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if isCurrentUserAdmin {
@@ -85,9 +79,7 @@ struct GroupInfoView: View {
                 }
             }
             .sheet(isPresented: $showEditGroupSheet) {
-                if let grp = group {
-                    EditGroupView(group: grp) {
-                    }
+                EditGroupView(group: group) {
                 }
             }
             .toolbar(showImageViewer ? .hidden : .visible, for: .navigationBar)
@@ -124,7 +116,7 @@ struct GroupInfoView: View {
                         .foregroundColor(.gray)
                 }
                 Spacer()
-                Text(user.id == group?.adminId ? "Admin" : "Member")
+                Text(user.id == group.adminId ? "Admin" : "Member")
                     .font(.caption)
                     .foregroundColor(.gray)
             }

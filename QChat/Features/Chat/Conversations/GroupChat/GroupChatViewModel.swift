@@ -21,25 +21,14 @@ class GroupChatViewModel: ObservableObject {
     @Published var pinnedMessageContent: String? = nil
     
     
-    let groupId: String? // Lưu ID nhóm hiện tại
+    let groupId: String // Lưu ID nhóm hiện tại
     
     private let db = Firestore.firestore()
     
     // Listen typing
     private var typingListener: ListenerRegistration?
     
-    // Biến xác định đường dẫn
-    private var messagesCollection: CollectionReference {
-        if let id = groupId {
-            // Đường dẫn cho nhóm riêng
-            return db.collection("groups").document(id).collection("messages")
-        } else {
-            // Đường dẫn cho nhóm chung
-            return db.collection("messages")
-        }
-    }
-    
-    init(groupId: String? = nil) {
+    init(groupId: String ) {
         self.groupId = groupId
         fetchCurrentUserProfile()
         fetchMessages()
@@ -49,9 +38,7 @@ class GroupChatViewModel: ObservableObject {
     
     // Hàm lănggs nghe để thay đổi
     func listenToGroupUpdates() {
-        guard let gid = groupId else { return }
-        
-        db.collection("groups").document(gid).addSnapshotListener { snapshot, error in
+        db.collection("groups").document(self.groupId).addSnapshotListener { snapshot, error in
             guard let data = snapshot?.data() else { return }
             
             DispatchQueue.main.async {
@@ -64,7 +51,6 @@ class GroupChatViewModel: ObservableObject {
     
     // Hàm Ghim tin nhắn
     func pinMessage(message: Message) {
-        guard let gid = groupId else { return }
         // Xác định nội dung hiển thị text hoặc photo
         var previewContent = ""
         switch message.type {
@@ -79,12 +65,11 @@ class GroupChatViewModel: ObservableObject {
             "pinnedMessageContent": previewContent
         ]
         
-        db.collection("groups").document(gid).updateData(data)
+        db.collection("groups").document(self.groupId).updateData(data)
     }
     
     // Hàm Gỡ ghim
     func unpinMessage() {
-        guard let gid = groupId else { return }
         
         let data: [String: Any] = [
             "pinnedMessageId": FieldValue.delete(),
@@ -92,17 +77,16 @@ class GroupChatViewModel: ObservableObject {
         ]
         
         db.collection("groups")
-            .document(gid)
+            .document(self.groupId)
             .updateData(data)
     }
 
     
     // Hàm lắng nghe trạng thái gõ
     func subscribeToTypingStatus() {
-        guard let gid = groupId else { return }
         guard let currentUid = Auth.auth().currentUser?.uid else { return }
         
-        typingListener = db.collection("groups").document(gid).collection("typing")
+        typingListener = db.collection("groups").document(self.groupId).collection("typing")
             .addSnapshotListener { snapshot, error in
                 guard let documents = snapshot?.documents else { return }
                 
@@ -128,7 +112,6 @@ class GroupChatViewModel: ObservableObject {
     
     // Gửi status đang typing
     func sendTypingStatus(isTyping: Bool) {
-        guard let gid = groupId else { return }
         guard let currentUid = Auth.auth().currentUser?.uid else { return }
         
         let data: [String: Any] = [
@@ -136,7 +119,7 @@ class GroupChatViewModel: ObservableObject {
             "username": currentUserName
         ]
         
-        db.collection("groups").document(gid).collection("typing")
+        db.collection("groups").document(self.groupId).collection("typing")
             .document(currentUid)
             .setData(data, merge: true)
     }
@@ -197,7 +180,7 @@ class GroupChatViewModel: ObservableObject {
     
     // Hàm Lấy tin nhắn
     func fetchMessages() {
-        messagesCollection
+        db.collection("groups").document(self.groupId).collection("messages")
             .order(by: "timestamp", descending: false) // Sắp xếp tin nhắn cũ trên, mới dưới
             .addSnapshotListener { querySnapshot, error in
                 // Nếu có lỗi thì thoát
@@ -272,17 +255,15 @@ class GroupChatViewModel: ObservableObject {
         }
         
         // Gửi tin nhắn
-        messagesCollection.addDocument(data: data)
+        db.collection("groups").document(self.groupId).collection("messages").addDocument(data: data)
         
-        // Nếu là nhóm riêng,update tin nhắn cuối ra recent
-        if let gid = groupId {
-            let lastMsgPreview = type == "text" ? content : (type == "sticker" ? "[Sticker]" : "[Photo]")
-            
-            db.collection("groups").document(gid).updateData([
-                "latestMessage": lastMsgPreview,
-                "updatedAt": Timestamp(date: Date()) // Cập nhật thời gian để nhảy lên đầu
-            ])
-        }
+        let lastMsgPreview = type == "text" ? content : (type == "sticker" ? "[Sticker]" : "[Photo]")
+        
+        db.collection("groups").document(self.groupId).updateData([
+            "latestMessage": lastMsgPreview,
+            "updatedAt": Timestamp(date: Date()) // Cập nhật thời gian để nhảy lên đầu
+        ])
+        
     }
     
     // Hàm thả react
@@ -290,7 +271,7 @@ class GroupChatViewModel: ObservableObject {
         guard let currentUserID = Auth.auth().currentUser?.uid else { return }
         let fieldName = "reactions.\(currentUserID)"
         
-        messagesCollection.document(messageId).updateData([fieldName: icon])
+        db.collection("groups").document(self.groupId).collection("messages").document(messageId).updateData([fieldName: icon])
         { err in
             if let err = err { print("GroupChatViewModel_3: \(err)") }
         }
@@ -301,7 +282,7 @@ class GroupChatViewModel: ObservableObject {
         guard let currentUserID = Auth.auth().currentUser?.uid else { return }
         let fieldName = "reactions.\(currentUserID)"
         
-        messagesCollection.document(messageId).updateData([fieldName: FieldValue.delete()])
+        db.collection("groups").document(self.groupId).collection("messages").document(messageId).updateData([fieldName: FieldValue.delete()])
         { err in
             if let err = err { print("GroupChatViewModel_4: \(err)") }
         }
@@ -315,7 +296,7 @@ class GroupChatViewModel: ObservableObject {
         if message.userId != currentUid { return }
         
         // Đổi type sang 'unsent' và xóa nội dung
-        messagesCollection.document(message.id).updateData([
+        db.collection("groups").document(self.groupId).collection("messages").document(message.id).updateData([
             "type": "unsent",
             "text": "Message has been unsent",
             "photoWidth": 0,
@@ -338,7 +319,7 @@ class GroupChatViewModel: ObservableObject {
         }
         
         // Cập nhật lên Firestore
-        messagesCollection
+        db.collection("groups").document(self.groupId).collection("messages")
             .document(message.id)
             .updateData([
                 "readBy": FieldValue.arrayUnion([currentUid])

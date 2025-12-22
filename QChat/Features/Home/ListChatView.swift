@@ -110,22 +110,7 @@ struct GroupSectionView: View {
                 .padding(.horizontal)
                 .padding(.top, 10)
             
-            // Nhóm Chat Chung
-            NavigationLink {
-                GroupChatView(group: nil)
-                    .toolbar(.hidden, for: .tabBar)
-            } label: {
-                ListChatRowView(
-                    avatarName: "",
-                    name: "QChat Community",
-                    lastMessage: "Join to chat",
-                    time: "",
-                    isGroup: true
-                )
-            }
-            .listRowSeparator(.hidden)
-            
-            // Danh sách Nhóm Riêng
+            // Danh sách nhóm
             ForEach(groups) { group in
                 ZStack {
                     NavigationLink {

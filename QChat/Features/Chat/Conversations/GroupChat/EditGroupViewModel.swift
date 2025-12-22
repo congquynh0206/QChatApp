@@ -75,7 +75,7 @@ class EditGroupViewModel: ObservableObject {
                 guard let self = self else { return }
                 
                 // Gửi thông báo hệ thống
-                self.sendSystemMessage("Admin removed \(userName) from the group.")
+                self.sendSystemMessage("Admin removed \(userName) from the group")
                 
                 DispatchQueue.main.async {
                     if let index = self.currentMemberIds.firstIndex(of: userId) {
@@ -111,7 +111,7 @@ class EditGroupViewModel: ObservableObject {
                 .joined(separator: ", ")
             
             // Gửi tin nhắn hệ thống
-            sendSystemMessage("Admin added \(newMemberNames) to the group.")
+            sendSystemMessage("Admin added \(newMemberNames) to the group")
         }
         
         dataToUpdate["updatedAt"] = Timestamp(date: Date())

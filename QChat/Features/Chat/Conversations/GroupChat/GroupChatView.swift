@@ -9,7 +9,7 @@ import SwiftUI
 import FirebaseAuth
 
 struct GroupChatView: View {
-    let group: ChatGroup?
+    let group: ChatGroup
     
     @StateObject var viewModel : GroupChatViewModel
     
@@ -24,10 +24,10 @@ struct GroupChatView: View {
     // Typing count
     @State private var typingTimer: Timer?
     
-    init(group: ChatGroup? = nil) {
+    init(group: ChatGroup ) {
         self.group = group
         // Khởi tạo ViewModel với groupId tương ứng
-        _viewModel = StateObject(wrappedValue: GroupChatViewModel(groupId: group?.id))
+        _viewModel = StateObject(wrappedValue: GroupChatViewModel(groupId: group.id))
     }
     
     private var currentUserId: String {
@@ -89,8 +89,8 @@ extension GroupChatView {
     
     // Check xem phải admin ko
     private var isCurrentUserAdmin: Bool {
-        guard let grp = group, let uid = Auth.auth().currentUser?.uid else { return false }
-        return grp.adminId == uid
+        guard let uid = Auth.auth().currentUser?.uid else { return false }
+        return group.adminId == uid
     }
     
     // Tách phần Header ra
@@ -111,7 +111,7 @@ extension GroupChatView {
             GroupAvatarView()
             // Thông tin Nhóm
             VStack(alignment: .leading, spacing: 2) {
-                Text(group?.name ?? "Group Chat")
+                Text(group.name)
                     .font(.headline)
                     .foregroundColor(.primary)
                 
