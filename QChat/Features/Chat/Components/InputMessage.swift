@@ -13,11 +13,13 @@ struct InputMessageView: View {
     @State var showStickerPicker = false
     @State var showImagePicker = false
     @FocusState.Binding var isFocus: Bool
+    @Binding var showScheduledList : Bool
     
     var placeholder: String = "Enter message"
     var onSend: () -> Void
     var onSendSticker: (String) -> Void
     var onSendImage:(String, CGFloat, CGFloat) -> Void
+    var onSchedule: () -> Void = {}
     
     // Danh sách Emoji
     let stickers : [String] = (1...8).map {"sticker-\($0)"}
@@ -61,6 +63,31 @@ struct InputMessageView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             HStack(spacing: 12) {
+                
+                // 3 chấm
+                Menu {
+                    
+                    // Schedule
+                    Button {
+                        onSchedule()
+                    } label: {
+                        Label("Schedule Message", systemImage: "clock")
+                    }
+                    
+                    // Schedule List
+                    Button {
+                        showScheduledList = true
+                    } label: {
+                        Label("Scheduled List", systemImage: "tray.full")
+                    }
+                    
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 22))
+                        .foregroundColor(.blue)
+                        .padding(8)
+                    
+                }
                 // Bật tắt Image
                 Button(action: {
                     toggleImagePicker()

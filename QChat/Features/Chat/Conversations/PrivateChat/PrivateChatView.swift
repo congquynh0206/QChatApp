@@ -10,6 +10,14 @@ struct PrivateChatView: View {
     @State private var replyingMessage: Message? = nil
     @State private var typingTimer: Timer?
     
+    // Schedule
+    @State private var showSchedulePicker = false
+    @State private var alertSchedule = false
+    @State private var alertPastSchedule = false
+    @State private var alertSuccessSchedule = false
+    @State private var timeRemainSchedule : Int = 0
+    @State private var showScheduledList = false
+    
     init(partner: User) {
         self._viewModel = StateObject(wrappedValue: PrivateChatViewModel(partner: partner))
     }
@@ -39,6 +47,7 @@ struct PrivateChatView: View {
                 text: $viewModel.text,
                 replyMessage: $replyingMessage,
                 isFocus: $isInputFocused,
+                showScheduledList: $showScheduledList,
                 onSend: {
                     viewModel.sendTextMessage(replyTo: replyingMessage)
                     replyingMessage = nil
@@ -48,6 +57,13 @@ struct PrivateChatView: View {
                 },
                 onSendImage: { name, width, height in
                     viewModel.sendImage(name: name, width: width, height: height)
+                },
+                onSchedule: {
+                    if viewModel.text.isEmpty {
+                        alertSchedule = true
+                    } else {
+                        showSchedulePicker = true
+                    }
                 }
             )
         }
@@ -55,6 +71,44 @@ struct PrivateChatView: View {
         .toolbar(.hidden, for: .tabBar)
         .onChange(of: viewModel.text) { _, newValue in
             handleTyping(text: newValue)
+        }
+        // Schedule list
+        .sheet(isPresented: $showScheduledList) {
+            ScheduledListView(messages: viewModel.scheduledMessages,
+                              onDelete: viewModel.deleteScheduledMessage,
+                              onUpdate: viewModel.updateScheduledMessage)
+                .presentationDetents([.medium, .large])
+        }
+        // Schedule picker
+        .sheet(isPresented: $showSchedulePicker) {
+            SchedulePickerView { date in
+                if date.timeIntervalSinceNow <= 0{
+                    alertPastSchedule = true
+                    
+                }else {
+                    timeRemainSchedule = Int(date.timeIntervalSinceNow)
+                    alertSuccessSchedule = true
+                    let content = viewModel.text
+                    viewModel.scheduleTextMessage(content: content, at: date)
+                    viewModel.text = "" // Xoá ô nhập sau khi hẹn
+                }
+            }
+        }
+        .alert ("Input is empty", isPresented: $alertSchedule){
+            Button ("OK", role: .cancel){alertSchedule = false}
+            
+        }message: {
+            Text("Please input something before schedule")
+        }
+        .alert ("Selected in the past", isPresented: $alertPastSchedule){
+            Button("OK", role: .cancel) {alertPastSchedule = false}
+        } message: {
+            Text("Please select time in the future")
+        }
+        .alert ("Success",isPresented: $alertSuccessSchedule){
+            Button("OK", role: .cancel){alertSuccessSchedule = false}
+        }message: {
+            Text("Message will send in \(timeRemainSchedule) seconds")
         }
     }
 }
