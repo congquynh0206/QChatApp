@@ -60,7 +60,6 @@ extension GroupChatViewModel {
         
         if timeInterval <= 0 { return }
         
-        print("Scheduled '\(item.content)' in \(Int(timeInterval))s")
         
         // Tạo timer
         let timer = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: false) { [weak self] _ in
@@ -84,7 +83,6 @@ extension GroupChatViewModel {
         if let timer = activeTimers[id] {
             timer.invalidate() // Dừng đồng hồ
             activeTimers.removeValue(forKey: id)
-            print("Timer cancelled for id: \(id)")
         }
     }
     

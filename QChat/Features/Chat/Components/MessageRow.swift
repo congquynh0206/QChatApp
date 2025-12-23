@@ -59,7 +59,7 @@ struct MessageRow: View {
                 VStack(alignment: isMe ? .trailing : .leading, spacing: 2) {
                     // Tên người gửi
                     if !isMe {
-                        Text(message.userName)
+                        Text(user?.username ?? message.userName)
                             .font(.caption)
                             .foregroundColor(.gray)
                             .padding(.leading, 5)

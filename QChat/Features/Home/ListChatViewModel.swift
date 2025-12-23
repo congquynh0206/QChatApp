@@ -31,6 +31,13 @@ class ListChatViewModel: ObservableObject {
     
     @Published var searchText = ""
     
+    // Biệt danh
+    @Published var partnerNicknames: [String: String] = [:]
+    
+    // Biến quản lý listener để tránh lắng nghe trùng lặp
+    private var nicknameListeners: [String: ListenerRegistration] = [:]
+    
+    
     private let service = ChatService()
     private var firestoreListener: ListenerRegistration?
     
@@ -42,6 +49,7 @@ class ListChatViewModel: ObservableObject {
     // Hủy lắng nghe khi thoát màn hình
     deinit {
         firestoreListener?.remove()
+        nicknameListeners.values.forEach { $0.remove() }
     }
     
     // Lọc
@@ -51,9 +59,49 @@ class ListChatViewModel: ObservableObject {
         } else {
             return recentMessages.filter { message in
                 let userName = message.user?.username ?? ""
-                return userName.localizedCaseInsensitiveContains(searchText)
+                let displayName = getDisplayName(partner: message.user)
+                return userName.localizedCaseInsensitiveContains(searchText) ||
+                displayName.localizedCaseInsensitiveContains(searchText)
             }
         }
+    }
+    
+    
+    // Hàm lắng nghe biệt danh
+    func listenToNickname(partnerId: String) {
+        // Nếu đã đang lắng nghe người này rồi thì thôi
+        if nicknameListeners[partnerId] != nil { return }
+        
+        guard let currentUid = Auth.auth().currentUser?.uid else { return }
+        let chatId = ChatService.getChatId(fromId: currentUid, toId: partnerId)
+        
+        let listener = Firestore.firestore().collection("chats").document(chatId)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self,
+                      let data = snapshot?.data(),
+                      let nicknames = data["nickName"] as? [String: String] else { return }
+                
+                // Lấy biệt danh của partnerId
+                if let nickname = nicknames[partnerId], !nickname.isEmpty {
+                    DispatchQueue.main.async {
+                        self.partnerNicknames[partnerId] = nickname
+                    }
+                } else {
+                    // Nếu không có/bị xóa thì xóa khỏi dict để hiện tên thật
+                    DispatchQueue.main.async {
+                        self.partnerNicknames.removeValue(forKey: partnerId)
+                    }
+                }
+            }
+        
+        // Lưu listener
+        nicknameListeners[partnerId] = listener
+    }
+    
+    // Hàm lấy tên hiển thị
+    func getDisplayName(partner: User?) -> String {
+        guard let user = partner else { return "Unknown" }
+        return partnerNicknames[user.id] ?? user.username
     }
     
     

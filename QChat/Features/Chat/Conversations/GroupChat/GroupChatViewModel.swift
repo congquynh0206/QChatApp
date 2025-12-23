@@ -15,12 +15,18 @@ class GroupChatViewModel: ObservableObject {
     @Published var currentUserName: String = "Unknown"
     @Published var currentUserAvatarUrl: String = ""
     @Published var allUsers: [User] = []
+    
+    // Typing
     @Published var typingUserNames: [String] = []
     
+    // Ghim
     @Published var pinnedMessageId: String? = nil
     @Published var pinnedMessageContent: String? = nil
     
     @Published var memberIds: [String] = []
+    
+    @Published var nickNames: [String:String] = [:]
+    
     
     // Schedule
     @Published var scheduledMessages : [ScheduledMessage] = []
@@ -50,12 +56,14 @@ class GroupChatViewModel: ObservableObject {
         loadScheduledMessages()
     }
     
+    // Lưu list schedule vào userdefault
     func saveScheduledMessages(){
         if let encoded = try? JSONEncoder().encode(scheduledMessages){
             UserDefaults.standard.set(encoded, forKey: storeKey)
         }
     }
     
+    // Load list lên khi mở app
     func loadScheduledMessages() {
         if let data = UserDefaults.standard.data(forKey: storeKey),
            let decoded = try? JSONDecoder().decode([ScheduledMessage].self, from: data) {
@@ -66,6 +74,7 @@ class GroupChatViewModel: ObservableObject {
         }
     }
     
+    // Tính lại thời gian
     func restoreTimers() {
         for item in scheduledMessages {
             // Tính toán lại thời gian còn lại
@@ -73,7 +82,6 @@ class GroupChatViewModel: ObservableObject {
             
             if timeInterval <= 0 {
                 // Nếu đã quá hạn thì gửi luôn
-                print("Đã quá hạn, gửi bù tin nhắn: \(item.content)")
                 performSendMessage(content: item.content, type: "text", lastestMessage: item.content)
                 removeFinishedSchedule(id: item.id) // Gửi xong xoá luôn
             } else {
@@ -81,6 +89,23 @@ class GroupChatViewModel: ObservableObject {
                 startTimer(for: item)
             }
         }
+    }
+    
+    // Set biệt danh
+    func setNickName (for userId: String, nickName: String){
+        var updateNickNames = self.nickNames
+        if nickName.isEmpty{
+            updateNickNames.removeValue(forKey: userId)
+        }else {
+            updateNickNames[userId] = nickName
+        }
+        
+        db.collection("groups").document(groupId).updateData(["nickNames": updateNickNames])
+    }
+    
+    // Hiển thị tên
+    func getDisplayName (userId: String, defaultName: String) -> String {
+        return nickNames[userId] ?? defaultName
     }
     
     

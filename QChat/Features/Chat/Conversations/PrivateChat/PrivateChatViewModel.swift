@@ -19,7 +19,8 @@ class PrivateChatViewModel: ObservableObject {
     var storeKey : String {
         return "scheduled_messages_\(chatId)"
     }
-    
+    // Nickname
+    @Published var nickNames: [String:String] = [:]
     
     // Typing
     @Published var isPartnerTyping: Bool = false
@@ -32,19 +33,25 @@ class PrivateChatViewModel: ObservableObject {
         return ChatService.getChatId(fromId: currentUid, toId: partner.id)
     }
     
+    
+    private var db = Firestore.firestore()
+    
     init(partner: User) {
         self.partner = partner
         fetchMessage()
         fetchCurrentUserProfile()
         loadScheduledMessages()
+        listenToChatOptions()
     }
     
+    // Lưu vào userdefault
     func saveScheduledMessages(){
         if let encoded = try? JSONEncoder().encode(scheduledMessages){
             UserDefaults.standard.set(encoded, forKey: storeKey)
         }
     }
     
+    // Load khi mở app
     func loadScheduledMessages() {
         if let data = UserDefaults.standard.data(forKey: storeKey),
            let decoded = try? JSONDecoder().decode([ScheduledMessage].self, from: data) {
@@ -54,7 +61,7 @@ class PrivateChatViewModel: ObservableObject {
             restoreTimers()
         }
     }
-    
+    // tính lại thời gian
     func restoreTimers() {
         for item in scheduledMessages {
             // Tính toán lại thời gian còn lại
@@ -62,7 +69,6 @@ class PrivateChatViewModel: ObservableObject {
             
             if timeInterval <= 0 {
                 // Nếu đã quá hạn thì gửi luôn
-                print("Đã quá hạn, gửi bù tin nhắn: \(item.content)")
                 performSendMessage(content: item.content, type: "text")
                 removeFinishedSchedule(id: item.id) // Gửi xong xoá luôn
             } else {
@@ -70,6 +76,35 @@ class PrivateChatViewModel: ObservableObject {
                 startTimer(for: item)
             }
         }
+    }
+    
+    
+    // Set biệt danh
+    func setNickName (for userId: String, nickName: String){
+        var updateNickNames = self.nickNames
+        if nickName.isEmpty{
+            updateNickNames.removeValue(forKey: userId)
+        }else {
+            updateNickNames[userId] = nickName
+        }
+        
+        db.collection("chats").document(chatId).setData(["nickName": updateNickNames])
+    }
+    
+    func listenToChatOptions() {
+        guard !chatId.isEmpty else { return }
+        db.collection("chats").document(chatId).addSnapshotListener { [weak self] snapshot, error in
+            guard let self = self, let data = snapshot?.data() else { return }
+            
+            DispatchQueue.main.async {
+                self.nickNames = data["nickName"] as? [String: String] ?? [:]
+            }
+        }
+    }
+    
+    // Hiển thị tên
+    func getDisplayName (userId: String, defaultName: String) -> String {
+        return nickNames[userId] ?? defaultName
     }
     
     

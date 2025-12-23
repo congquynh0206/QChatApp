@@ -11,7 +11,7 @@ import FirebaseAuth
 
 extension GroupChatViewModel {
     
-    // Lắng nghe thay đổi của Group (Tên, thành viên, ghim)
+    // Lắng nghe thay đổi của Group
     func listenToGroupUpdates() {
         db.collection("groups").document(self.groupId).addSnapshotListener { snapshot, error in
             guard let data = snapshot?.data() else { return }
@@ -22,6 +22,7 @@ extension GroupChatViewModel {
                 if let updatedMembers = data["members"] as? [String] {
                     self.memberIds = updatedMembers
                 }
+                self.nickNames = data["nickNames"] as? [String:String] ?? [:]
             }
         }
     }
@@ -131,4 +132,7 @@ extension GroupChatViewModel {
             .document(currentUid)
             .setData(["isTyping": isTyping, "username": currentUserName], merge: true)
     }
+    
+    
+    
 }

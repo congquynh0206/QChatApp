@@ -297,10 +297,11 @@ extension GroupChatView {
     
     // Hàm helper để tạo User
     private func getAuthor(for message: Message) -> User {
+        let displayName = viewModel.getDisplayName(userId: message.userId, defaultName: message.userName)
         return User(
             id: message.userId,
             email: "",
-            username: message.userName,
+            username: displayName,
             avatar: message.userAvatarUrl ?? ""
         )
     }

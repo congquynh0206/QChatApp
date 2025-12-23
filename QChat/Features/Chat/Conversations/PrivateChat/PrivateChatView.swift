@@ -10,6 +10,10 @@ struct PrivateChatView: View {
     @State private var replyingMessage: Message? = nil
     @State private var typingTimer: Timer?
     
+    // Info
+    @State private var showPartnerInfor = false
+    
+    
     // Schedule
     @State private var showSchedulePicker = false
     @State private var alertSchedule = false
@@ -72,6 +76,9 @@ struct PrivateChatView: View {
         .onChange(of: viewModel.text) { _, newValue in
             handleTyping(text: newValue)
         }
+        .sheet(isPresented: $showPartnerInfor) {
+            PrivateInfoView(partner: viewModel.partner, viewModel: viewModel)
+        }
         // Schedule list
         .sheet(isPresented: $showScheduledList) {
             ScheduledListView(messages: viewModel.scheduledMessages,
@@ -129,7 +136,7 @@ extension PrivateChatView {
             AvatarView(user: viewModel.partner, size: 35, displayOnl: true)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(viewModel.partner.username)
+                Text(viewModel.getDisplayName(userId: viewModel.partner.id, defaultName: viewModel.partner.username))
                     .font(.headline)
                     .foregroundColor(.primary)
                 
@@ -141,6 +148,13 @@ extension PrivateChatView {
             }
             
             Spacer()
+            Button {
+                showPartnerInfor = true
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 25))
+                    .foregroundColor(.blue)
+            }
         }
         .padding()
         .background(.regularMaterial)

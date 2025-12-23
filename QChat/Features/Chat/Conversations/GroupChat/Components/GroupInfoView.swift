@@ -30,6 +30,12 @@ struct GroupInfoView: View {
     @State private var showDeleteAlert = false
     @State private var showTransferAdminAlert = false
     
+    // Nickname
+    
+    @State private var showNicknameAlert = false
+    @State private var nicknameInput : String = ""
+    @State private var selectedUserForNickname : User?
+    
     var onLeaveOrDelete: (() -> Void)?
     
     // Helper check admin
@@ -155,8 +161,13 @@ struct GroupInfoView: View {
                 AvatarView(user: user, size: 35, displayOnl: true)
                 
                 VStack(alignment: .leading) {
-                    Text(user.username)
+                    Text(viewModel.getDisplayName(userId: user.id, defaultName: user.username))
                         .font(.headline)
+                    if viewModel.nickNames[user.id] != nil{
+                        Text(user.username)
+                            .font(.caption2)
+                            .foregroundStyle(.gray)
+                    }
                     Text(user.email)
                         .font(.caption)
                         .foregroundColor(.gray)
@@ -175,6 +186,23 @@ struct GroupInfoView: View {
                     } label: {
                         Label("Promote to Admin", systemImage: "person.badge.key.fill")
                     }
+                }
+                
+                Button {
+                    selectedUserForNickname = user
+                    nicknameInput = viewModel.nickNames[user.id] ?? ""
+                    showNicknameAlert = true
+                } label: {
+                    Label("Set Nickname", systemImage: "pencil")
+                }
+            }
+        }
+        .alert("Set Nickname", isPresented: $showNicknameAlert) {
+            TextField("Enter nickname", text: $nicknameInput)
+            Button("Cancel", role: .cancel) { }
+            Button("Save") {
+                if let user = selectedUserForNickname {
+                    viewModel.setNickName(for: user.id, nickName: nicknameInput)
                 }
             }
         }

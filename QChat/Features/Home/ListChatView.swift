@@ -148,7 +148,7 @@ struct PrivateChatSectionView: View {
                         let targetUser = message.user ?? User(
                             id: message.chatPartnerId,
                             email: "",
-                            username: message.user?.username ?? "Loading...",
+                            username: viewModel.getDisplayName(partner: message.user),
                             avatar: message.user?.avatar ?? nil
                         )
                         PrivateChatView(partner: targetUser)
@@ -159,12 +159,15 @@ struct PrivateChatSectionView: View {
                     
                     ListChatRowView(
                         avatarName: message.user?.username ?? "U",
-                        name: message.user?.username ?? "Loading...",
+                        name: viewModel.getDisplayName(partner: message.user),
                         lastMessage: message.text,
                         time: message.timestamp.formatted(.dateTime.hour().minute()),
                         isGroup: false,
                         user: message.user
                     )
+                    .onAppear {
+                        viewModel.listenToNickname(partnerId: message.chatPartnerId)
+                    }
                 }
                 .listRowSeparator(.hidden)
             }
