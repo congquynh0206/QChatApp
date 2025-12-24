@@ -22,6 +22,10 @@ struct ListChatView: View {
     @State private var newlyCreatedGroup: ChatGroup?
     @State private var navigateToNewGroup = false
     
+    // Biến điều hướng Local Noti
+    @State private var navigateToPrivateUser: User?
+    @State private var navigateToGroup: ChatGroup?
+    
     var body: some View {
         NavigationStack {
             List {
@@ -34,6 +38,17 @@ struct ListChatView: View {
                 // Private Chat
                 PrivateChatSectionView(viewModel: viewModel)
             }
+            // Đích đến là private chat
+            .navigationDestination(item: $navigateToPrivateUser) { user in
+                PrivateChatView(partner: user)
+            }
+            
+            // Đích đến là Chat Nhóm
+            .navigationDestination(item: $navigateToGroup) { group in
+                GroupChatView(group: group)
+            }
+            
+            
             .listStyle(.plain)
             .navigationTitle("QChat")
             .navigationBarTitleDisplayMode(.inline)
@@ -56,6 +71,7 @@ struct ListChatView: View {
                         .toolbar(.hidden, for: .tabBar)
                 }
             }
+            
             // Popup tạo tin nhắn mới
             .fullScreenCover(isPresented: $showNewMessage) {
                 NewMessageView(
@@ -73,8 +89,48 @@ struct ListChatView: View {
                 )
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenChatFromNotification"))) { _ in
+            handleNotificationTap()
+        }
+        // Check ngay khi mở app
+        .onAppear {
+            handleNotificationTap()
+        }
+        .onChange(of: viewModel.myGroups) { _,_  in
+            handleNotificationTap()
+        }
+        .onChange(of: viewModel.recentMessages.count) { _,_ in
+            handleNotificationTap()
+        }
     }
     
+    // Tìm đoạn chat để điều hướng khi bấm local noti
+    func handleNotificationTap() {
+        guard let nav = AppDelegate.pendingNav else { return }
+        var found = false
+        
+        if nav.type == "private" {
+            // Chat riêng, tìm partner theo target id trong recent list
+            if let recent = viewModel.recentMessages.first(where: { $0.chatPartnerId == nav.targetId }),
+               let user = recent.user {
+                self.navigateToPrivateUser = user
+                found = true
+            }
+            
+        } else if nav.type == "group" {
+            // Group, tìm group trong danh sách myGroups
+            if let group = viewModel.myGroups.first(where: { $0.id == nav.targetId }) {
+                self.navigateToGroup = group
+                found = true
+            }
+        }
+        
+        // Reset sau khi xử lý xong
+        if found {
+            AppDelegate.pendingNav = nil
+        }
+        
+    }
     // Tool bar
     @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {

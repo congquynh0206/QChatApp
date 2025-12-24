@@ -10,13 +10,42 @@ import FirebaseCore
 import UserNotifications
 
 
-class AppDelegate: NSObject, UIApplicationDelegate {
-  func application(_ application: UIApplication,
-                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-    // Bật Firebase
-    FirebaseApp.configure()
-    print(" Đã kết nối Firebase thành công")
-    return true
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    struct PendingNavigation {
+        let type: String
+        let targetId: String
+    }
+    
+    static var pendingNav: PendingNavigation?
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        
+        let userInfo = response.notification.request.content.userInfo
+        
+        if let type = userInfo["type"] as? String,
+           let targetId = userInfo["targetId"] as? String {
+            
+            DispatchQueue.main.async {
+                AppDelegate.pendingNav = PendingNavigation(type: type, targetId: targetId)
+                NotificationCenter.default.post(name: NSNotification.Name("OpenChatFromNotification"), object: nil)
+            }
+        }
+        completionHandler()
+    }
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+
+        completionHandler([.banner, .sound, .badge, .list])
+    }
+    
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        UNUserNotificationCenter.current().delegate = self
+        // Bật Firebase
+        FirebaseApp.configure()
+        print(" Đã kết nối Firebase thành công")
+        return true
   }
 }
 

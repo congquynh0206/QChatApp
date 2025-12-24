@@ -8,14 +8,14 @@ import Foundation
 import FirebaseFirestore
 
 // Tin nhắn cuối cùng
-struct GroupLatestMessage: Codable {
+struct GroupLatestMessage: Codable ,Hashable{
     var text: String
     var fromId: String
     var timestamp: Date
     var readBy: [String] //Danh sách người đã đọc
 }
 
-struct ChatGroup: Identifiable, Codable {
+struct ChatGroup: Identifiable, Codable, Hashable {
     var id: String
     var name: String
     var avatarUrl: String

@@ -24,6 +24,8 @@ extension GroupChatViewModel {
         // Gửi tbao, hiện banner
         NotificationManager.shared.scheduleNotification(
             id: newItem.id,
+            type: "group",
+            targetId: groupId,
             content: "Send to group \(self.groupName): \"\(newItem.content)\"",
             date: newItem.scheduleDate,
             title: "QChat - Group Message Scheduled"
@@ -86,6 +88,25 @@ extension GroupChatViewModel {
         
         // Lưu timer lại để quản lý
         activeTimers[item.id] = timer
+    }
+    
+    // Tính lại thời gian
+    func restoreTimers() {
+        let currentSchedules = scheduledMessages
+        for item in currentSchedules {
+            // Tính toán lại thời gian còn lại
+            let timeInterval = item.scheduleDate.timeIntervalSinceNow
+            
+            if timeInterval <= 0 {
+                // Nếu đã quá hạn thì gửi luôn
+                performSendMessage(content: item.content, type: "text", lastestMessage: item.content)
+                removeFinishedSchedule(id: item.id) // Gửi xong xoá luôn
+                saveScheduledMessages()
+            } else {
+                // Nếu chưa quá thì chạy tiếp
+                startTimer(for: item)
+            }
+        }
     }
     
     private func cancelTimer(id: String) {

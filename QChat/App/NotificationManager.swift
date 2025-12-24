@@ -26,11 +26,16 @@ class NotificationManager {
     }
     
     // Hẹn giờ thông báo
-    func scheduleNotification(id: String, content: String, date: Date, title: String) {
+    func scheduleNotification(id: String,type: String, targetId: String, content: String, date: Date, title: String) {
         let notiContent = UNMutableNotificationContent()
         notiContent.title = title
         notiContent.body = content
         notiContent.sound = .default
+        
+        notiContent.userInfo = [
+            "type": type,
+            "targetId" : targetId
+        ]
         
         let dateComponents = Calendar.current.dateComponents(
             [.year, .month, .day, .hour, .minute, .second],

@@ -85,22 +85,7 @@ class GroupChatViewModel: ObservableObject {
         }
     }
     
-    // Tính lại thời gian
-    func restoreTimers() {
-        for item in scheduledMessages {
-            // Tính toán lại thời gian còn lại
-            let timeInterval = item.scheduleDate.timeIntervalSinceNow
-            
-            if timeInterval <= 0 {
-                // Nếu đã quá hạn thì gửi luôn
-                performSendMessage(content: item.content, type: "text", lastestMessage: item.content)
-                removeFinishedSchedule(id: item.id) // Gửi xong xoá luôn
-            } else {
-                // Nếu chưa quá thì chạy tiếp
-                startTimer(for: item)
-            }
-        }
-    }
+    
     
     // Set biệt danh
     func setNickName (for userId: String, nickName: String){
