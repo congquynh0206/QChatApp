@@ -42,6 +42,15 @@ class PrivateChatViewModel: ObservableObject {
         fetchCurrentUserProfile()
         loadScheduledMessages()
         listenToChatOptions()
+        markAsRead()
+    }
+    
+    // Đánh dấu đã đọc rồi
+    func markAsRead (){
+        guard let cid = Auth.auth().currentUser?.uid else {return}
+        let recentRef = db.collection("recent_messages").document(cid).collection("messages").document(partner.id)
+        
+        recentRef.updateData(["readBy": FieldValue.arrayUnion([cid])])
     }
     
     // Lưu vào userdefault

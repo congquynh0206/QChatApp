@@ -6,10 +6,11 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct ListChatView: View {
     @Binding var selectedTab : Int
-    @StateObject var viewModel = ListChatViewModel()
+    @ObservedObject var viewModel : ListChatViewModel
     @EnvironmentObject var authViewModel : AuthViewModel
     
     // Biến điều hướng
@@ -122,12 +123,17 @@ struct GroupSectionView: View {
                         EmptyView()
                     }.opacity(0)
                     
+                    let currentUid = Auth.auth().currentUser?.uid ?? ""
+                    let isRead = group.latestMessage.readBy.contains(currentUid)
+                    
                     ListChatRowView(
                         avatarName: group.name,
                         name: group.name,
-                        lastMessage: group.latestMessage,
+                        lastMessage: group.latestMessage.text,
                         time: group.updatedAt.formatted(.dateTime.hour().minute()),
-                        isGroup: true
+                        isGroup: true,
+                        isRead: isRead,
+                        unReadCount: 0
                     )
                 }
                 .listRowSeparator(.hidden)
@@ -163,7 +169,9 @@ struct PrivateChatSectionView: View {
                         lastMessage: message.text,
                         time: message.timestamp.formatted(.dateTime.hour().minute()),
                         isGroup: false,
-                        user: message.user
+                        user: message.user,
+                        isRead: message.isReadByMe,
+                        unReadCount: viewModel.totalUnReadCount
                     )
                     .onAppear {
                         viewModel.listenToNickname(partnerId: message.chatPartnerId)

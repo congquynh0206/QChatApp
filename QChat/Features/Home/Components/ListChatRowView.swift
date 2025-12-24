@@ -16,6 +16,9 @@ struct ListChatRowView: View {
     
     var user: User? = nil
     
+    let isRead : Bool
+    let unReadCount : Int
+    
     var body: some View {
         HStack(spacing: 15) {
             // Avatar
@@ -34,7 +37,8 @@ struct ListChatRowView: View {
                 
                 Text(lastMessage)
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .fontWeight(!isRead ? .bold : .regular)
+                    .foregroundColor(isRead ? .gray : .primary)
                     .lineLimit(1)
             }
             
@@ -44,6 +48,13 @@ struct ListChatRowView: View {
             Text(time)
                 .font(.caption)
                 .foregroundColor(.gray)
+            
+            if !isRead {
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: 10, height: 10)
+                
+            }
         }
         .padding(.vertical, 8)
     }

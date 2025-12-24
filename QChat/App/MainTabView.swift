@@ -9,14 +9,16 @@ import SwiftUI
 struct MainTabView : View {
     @State var selectedTab = 0
     @AppStorage("isDarkMode") private var isDarkMode = false
+    @StateObject var vm = ListChatViewModel()
     var body: some View {
         TabView(selection: $selectedTab){
-            ListChatView(selectedTab: $selectedTab)
+            ListChatView(selectedTab: $selectedTab, viewModel: vm)
                 .tabItem {
                     Image(systemName: "bubble.left.and.bubble.right.fill")
                     Text("Chats")
                 }
                 .tag(0)
+                .badge(vm.totalUnReadCount)
             ProfileView()
                 .tabItem {
                     Image(systemName: "person.fill")

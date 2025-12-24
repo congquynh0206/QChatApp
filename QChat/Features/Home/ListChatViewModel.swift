@@ -16,9 +16,19 @@ struct RecentMessage: Identifiable, Codable {
     let timestamp: Date
     var user: User?         // thông tin người chat cùng
     
+    var readBy : [String]?
+    
     // Tìm xem ai là người chat cùng mình
     var chatPartnerId: String {
         return fromId == Auth.auth().currentUser?.uid ? toId : fromId
+    }
+    
+    var isReadByMe : Bool {
+        guard let cid = Auth.auth().currentUser?.uid else {return false}
+        
+        if fromId == cid {return true}
+        
+        return readBy?.contains(cid) ?? false
     }
 }
 
@@ -40,6 +50,18 @@ class ListChatViewModel: ObservableObject {
     
     private let service = ChatService()
     private var firestoreListener: ListenerRegistration?
+    
+    var totalUnReadCount: Int {
+        guard let currentUid = Auth.auth().currentUser?.uid else { return 0 }
+
+        let unreadPrivate = recentMessages.filter { !$0.isReadByMe }.count
+
+        let unreadGroups = myGroups.filter { group in
+            return !group.latestMessage.readBy.contains(currentUid)
+        }.count
+        
+        return unreadPrivate + unreadGroups
+    }
     
     init() {
         fetchRecentMessages()

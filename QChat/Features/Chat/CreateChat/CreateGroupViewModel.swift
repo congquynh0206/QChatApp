@@ -48,22 +48,29 @@ class CreateGroupViewModel: ObservableObject {
     
     // Lưu nhóm lên Firebase
     func createGroup(completion: @escaping (ChatGroup?) -> Void) {
-        guard let currentUid = Auth.auth().currentUser?.uid, !groupName.isEmpty, !selectedUserIds.isEmpty else { return }
+        guard let currentUserID = Auth.auth().currentUser?.uid, !groupName.isEmpty, !selectedUserIds.isEmpty else { return }
         
         self.isSaving = true
         let newGroupId = UUID().uuidString
         
         // Thêm chính mình vào danh sách thành viên
         var finalMembers = Array(selectedUserIds)
-        finalMembers.append(currentUid)
+        finalMembers.append(currentUserID)
+        
+        let initialMessage = GroupLatestMessage(
+            text: "New group",
+            fromId: currentUserID,
+            timestamp: Date(),
+            readBy: [currentUserID]
+        )
         
         let newGroup = ChatGroup(
             id: newGroupId,
             name: groupName,
             avatarUrl: "",
-            adminId: currentUid,
+            adminId: currentUserID,
             members: finalMembers,
-            latestMessage: "Created new group",
+            latestMessage: initialMessage,
             updatedAt: Date()
         )
         

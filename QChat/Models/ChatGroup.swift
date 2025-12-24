@@ -7,13 +7,23 @@
 import Foundation
 import FirebaseFirestore
 
+// Tin nhắn cuối cùng
+struct GroupLatestMessage: Codable {
+    var text: String
+    var fromId: String
+    var timestamp: Date
+    var readBy: [String] //Danh sách người đã đọc
+}
+
 struct ChatGroup: Identifiable, Codable {
     var id: String
     var name: String
     var avatarUrl: String
-    var adminId: String           // Người tạo nhóm
-    var members: [String]        // Danh sách ID thành viên
-    var latestMessage: String
+    var adminId: String
+    var members: [String]
+    
+    var latestMessage: GroupLatestMessage
+    
     var updatedAt: Date
     var pinnedMessageId : String?
     var pinnedMessageContent : String?
@@ -27,14 +37,19 @@ struct ChatGroup: Identifiable, Codable {
             "avatarUrl": avatarUrl,
             "adminId": adminId,
             "members": members,
-            "latestMessage": latestMessage,
-            "updatedAt": Timestamp(date: updatedAt) 
+            "latestMessage": [
+                "text": latestMessage.text,
+                "fromId": latestMessage.fromId,
+                "readBy": latestMessage.readBy,
+                "timestamp": Timestamp(date: latestMessage.timestamp)
+            ],
+            "updatedAt": Timestamp(date: updatedAt),
+            "nickNames": nickNames ?? [:]
         ]
     }
 }
 
 extension ChatGroup {
-    // Init từ Dictionary khi lấy từ Firebase về
     init?(dictionary: [String: Any]) {
         guard let id = dictionary["id"] as? String,
               let name = dictionary["name"] as? String,
@@ -47,7 +62,24 @@ extension ChatGroup {
         self.members = members
         self.adminId = adminId
         self.avatarUrl = dictionary["avatarUrl"] as? String ?? ""
-        self.latestMessage = dictionary["latestMessage"] as? String ?? ""
+        
+        // Parse dữ liệu latestMessage từ Firebase về
+        if let data = dictionary["latestMessage"] as? [String: Any] {
+            // Trường hợp dữ liệu mới đã là Object
+            let text = data["text"] as? String ?? ""
+            let fromId = data["fromId"] as? String ?? ""
+            let readBy = data["readBy"] as? [String] ?? []
+            let timeVal = data["timestamp"] as? Timestamp
+            let timestamp = timeVal?.dateValue() ?? Date()
+            
+            self.latestMessage = GroupLatestMessage(text: text, fromId: fromId, timestamp: timestamp, readBy: readBy)
+        } else if let textStr = dictionary["latestMessage"] as? String {
+            // Trường hợp dữ liệu cũ chỉ là String thì tạo object 
+            self.latestMessage = GroupLatestMessage(text: textStr, fromId: "", timestamp: Date(), readBy: [])
+        } else {
+            // Mặc định rỗng
+            self.latestMessage = GroupLatestMessage(text: "", fromId: "", timestamp: Date(), readBy: [])
+        }
         
         self.pinnedMessageId = dictionary["pinnedMessageId"] as? String
         self.pinnedMessageContent = dictionary["pinnedMessageContent"] as? String

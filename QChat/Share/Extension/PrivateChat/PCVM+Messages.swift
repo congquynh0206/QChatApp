@@ -65,7 +65,8 @@ extension PrivateChatViewModel {
             "fromId": currentUid,
             "toId": partner.id,
             "timestamp": Timestamp(date: Date()),
-            "messageId": messageId
+            "messageId": messageId,
+            "readBy" : [currentUid]
         ]
         
         // Update cho cả 2 bên

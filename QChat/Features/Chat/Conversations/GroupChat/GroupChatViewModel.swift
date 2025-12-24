@@ -54,6 +54,16 @@ class GroupChatViewModel: ObservableObject {
         fetchAllUsers()
         listenToGroupUpdates()
         loadScheduledMessages()
+        markAsRead()
+    }
+    
+    // Đánh dấu đã đọc rồi
+    func markAsRead() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        db.collection("groups").document(groupId).updateData([
+            "latestMessage.readBy": FieldValue.arrayUnion([uid])
+        ])
     }
     
     // Lưu list schedule vào userdefault

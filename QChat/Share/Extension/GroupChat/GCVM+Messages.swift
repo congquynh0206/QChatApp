@@ -39,7 +39,15 @@ extension GroupChatViewModel {
             "userId": currentUserID,
             "userName": currentUserName,
             "userAvatarUrl": self.currentUserAvatarUrl,
-            "timestamp": Timestamp(date: Date())
+            "timestamp": Timestamp(date: Date()),
+            "readBy" : [currentUserID]
+        ]
+        
+        let latestMessageData: [String: Any] = [
+            "text": lastestMessage,
+            "fromId": currentUserID,
+            "timestamp": Timestamp(),
+            "readBy": [currentUserID]
         ]
         
         if let reply = replyTo {
@@ -53,7 +61,7 @@ extension GroupChatViewModel {
         
         // Update recent mess
         db.collection("groups").document(self.groupId).updateData([
-            "latestMessage": lastestMessage,
+            "latestMessage": latestMessageData,
             "updatedAt": Timestamp(date: Date())
         ])
     }
