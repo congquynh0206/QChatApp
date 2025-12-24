@@ -21,6 +21,14 @@ extension GroupChatViewModel {
         let newItem = ScheduledMessage(content: content, scheduleDate: date)
         self.scheduledMessages.append(newItem)
         saveScheduledMessages()
+        // Gửi tbao, hiện banner
+        NotificationManager.shared.scheduleNotification(
+            id: newItem.id,
+            content: "Send to group \(self.groupName): \"\(newItem.content)\"",
+            date: newItem.scheduleDate,
+            title: "QChat - Group Message Scheduled"
+        )
+        
         startTimer(for: newItem)
     }
     
@@ -48,6 +56,7 @@ extension GroupChatViewModel {
         offsets.forEach { index in
             let item = scheduledMessages[index]
             cancelTimer(id: item.id)
+            NotificationManager.shared.cancelNotification(id: item.id)
         }
         scheduledMessages.remove(atOffsets: offsets)
         saveScheduledMessages()

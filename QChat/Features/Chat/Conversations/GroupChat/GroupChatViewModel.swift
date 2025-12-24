@@ -26,6 +26,7 @@ class GroupChatViewModel: ObservableObject {
     @Published var memberIds: [String] = []
     
     @Published var nickNames: [String:String] = [:]
+    @Published var groupName : String = ""
     
     
     // Schedule

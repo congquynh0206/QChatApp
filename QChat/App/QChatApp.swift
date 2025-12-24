@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseCore
+import UserNotifications
 
 
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -24,6 +25,10 @@ struct QChatApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject var authViewModel = AuthViewModel()
     @Environment(\.scenePhase) var scenePhase
+    
+    init (){
+        NotificationManager.shared.requestAuthorization()
+    }
     
     var body: some Scene {
         WindowGroup {

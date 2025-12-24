@@ -17,6 +17,9 @@ extension GroupChatViewModel {
             guard let data = snapshot?.data() else { return }
             
             DispatchQueue.main.async {
+                if let name = data["name"] as? String {
+                    self.groupName = name
+                }
                 self.pinnedMessageId = data["pinnedMessageId"] as? String
                 self.pinnedMessageContent = data["pinnedMessageContent"] as? String
                 if let updatedMembers = data["members"] as? [String] {

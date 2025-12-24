@@ -5,6 +5,7 @@
 //  Created by Trangptt on 22/12/25.
 //
 import Foundation
+import UserNotifications
 
 
 extension PrivateChatViewModel {
@@ -18,9 +19,19 @@ extension PrivateChatViewModel {
             return
         }
         
+        
         let newItem = ScheduledMessage(content: content, scheduleDate: date)
         self.scheduledMessages.append(newItem)
         saveScheduledMessages()
+        
+        // Gửi tbao, hiện banner
+        NotificationManager.shared.scheduleNotification(
+            id: newItem.id,
+            content: "Send to \(partner.username): \"\(newItem.content)\"",
+            date: newItem.scheduleDate,
+            title: "QChat - Private Message Scheduled"
+        )
+        
         startTimer(for: newItem)
     }
     
@@ -49,6 +60,7 @@ extension PrivateChatViewModel {
         offsets.forEach { index in
             let item = scheduledMessages[index]
             cancelTimer(id: item.id)
+            NotificationManager.shared.cancelNotification(id: item.id)
         }
         scheduledMessages.remove(atOffsets: offsets)
         
