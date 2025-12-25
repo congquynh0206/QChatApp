@@ -28,10 +28,19 @@ struct ListChatView: View {
     
     var body: some View {
         NavigationStack {
+            
             List {
+                Section{
+                    SearchView(searchText: $viewModel.searchText)
+                }
+                Section{
+                    if !viewModel.filteredMessages.isEmpty {
+                        AvatarLinkSection(viewModel: viewModel, authVM: authViewModel)
+                    }
+                }
+                
                 // Group chat
                 GroupSectionView(
-                    searchText: $viewModel.searchText,
                     groups: viewModel.myGroups
                 )
                 
@@ -156,19 +165,9 @@ struct ListChatView: View {
 
 // Group chat
 struct GroupSectionView: View {
-    @Binding var searchText: String
     let groups: [ChatGroup]
-    
     var body: some View {
         Section {
-            // Search Bar
-            SearchBar(text: $searchText, placeholder: "Search")
-                .padding(.bottom, 10)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets())
-                .padding(.horizontal)
-                .padding(.top, 10)
-            
             // Danh sách nhóm
             ForEach(groups) { group in
                 ZStack {
@@ -197,6 +196,71 @@ struct GroupSectionView: View {
         }
     }
 }
+
+struct AvatarLinkSection : View {
+    @ObservedObject var viewModel : ListChatViewModel
+    @ObservedObject var authVM : AuthViewModel
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false){
+            HStack (spacing: 25){
+                AvatarAndName(user: authVM.currentUser, size: 67, display: true, name: "You")
+                
+                ForEach(viewModel.filteredMessages){ message in
+                    NavigationLink{
+                        let targetUser = message.user ?? User (
+                            id: message.chatPartnerId,
+                            email: "",
+                            username: viewModel.getDisplayName(partner: message.user),
+                            avatar: message.user?.avatar ?? nil
+                        )
+                        PrivateChatView(partner: targetUser)
+                    } label: {
+                        
+                        AvatarAndName(user: message.user, size: 67, display: true, name: viewModel.getDisplayName(partner: message.user))
+                    }
+                }
+            }
+            .padding(.horizontal,2)
+            .padding(.vertical, 2)
+        }
+        .listRowSeparator(.hidden)
+    }
+}
+
+// Search
+struct SearchView : View {
+    @Binding var searchText: String
+    var body: some View {
+        // Search Bar
+        SearchBar(text: $searchText, placeholder: "Search")
+            .padding(.bottom, 10)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
+            .padding(.horizontal)
+            .padding(.top, 20)
+    }
+}
+
+// Shared
+struct AvatarAndName : View {
+    let user : User?
+    let size : CGFloat
+    let display : Bool
+    let name : String
+    var body: some View {
+        VStack {
+            AvatarView(user: user, size: size, displayOnl: display)
+                
+            
+            Text(name)
+                .font(.caption)
+                .lineLimit(1)
+                .frame(width: 60)
+                .foregroundColor(.primary)
+        }
+    }
+}
+
 
 // Private chat
 struct PrivateChatSectionView: View {

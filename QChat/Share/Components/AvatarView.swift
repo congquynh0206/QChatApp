@@ -22,6 +22,14 @@ struct AvatarView : View {
                     .scaledToFill()
                     .frame(width: size, height: size)
                     .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(Color.primary, lineWidth: 2)
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
                     
             } else {
                 Circle()
