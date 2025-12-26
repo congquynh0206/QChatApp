@@ -143,7 +143,6 @@ struct PersonalInformationView: View {
                 showResultAlert = true
                 
             } catch let error as NSError {
-                // Check mã lỗi 100 (Logout do đổi email)
                 if error.code == 100 {
                     resultMessage = "Email changed successfully. Please verify the link sent to \(email) and login again."
                     showResultAlert = true
