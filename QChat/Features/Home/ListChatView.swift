@@ -251,7 +251,6 @@ struct AvatarAndName : View {
         VStack {
             AvatarView(user: user, size: size, displayOnl: display)
                 
-            
             Text(name)
                 .font(.caption)
                 .lineLimit(1)

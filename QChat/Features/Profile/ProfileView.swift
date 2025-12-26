@@ -54,8 +54,6 @@ struct ProfileView: View {
         
         ProfileOption(title: "Dark Mode", iconName: "moon.stars.fill", color: .orange, type: .toggle, isDestructive: false),
         
-        ProfileOption(title: "Notification", iconName: "bell.badge", color: .green, type: .navigation, isDestructive: false),
-        
         ProfileOption(title: "Log Out", iconName: "rectangle.portrait.and.arrow.right", color: .red, type: .button, isDestructive: true)
     ]
     
@@ -94,8 +92,8 @@ struct ProfileView: View {
                     ChangePasswordView()
                 case .personalInfo:
                     PersonalInformationView()
-                case .notification:
-                    Text("Noti View")
+                default:
+                    Text("Tính năng chưa phát triển")
                 }
             }
             .sheet(isPresented: $showAvatarSelection){
@@ -126,10 +124,6 @@ struct ProfileView: View {
             
         case "Information":
             path.append(ProfileDestination.personalInfo)
-            
-        case "Notification":
-            path.append(ProfileDestination.notification)
-            
         default:
             print("Tính năng chưa phát triển")
         }
@@ -137,8 +131,6 @@ struct ProfileView: View {
     
     func performLogout() {
         UserStatusService.shared.updateStatus(isOnline: false)
-        
-        // Đợi 0.5 giây cho mạng xử lý status offline rồi mới đăng xuất
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             do {
                 try authViewModel.logOut()

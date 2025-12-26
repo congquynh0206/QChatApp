@@ -10,10 +10,12 @@ import SwiftUI
 struct InputMessageView: View {
     @Binding var text: String
     @Binding var replyMessage: Message?
+    @Binding var showScheduledList : Bool
+    @FocusState.Binding var isFocus: Bool
+    
+    
     @State var showStickerPicker = false
     @State var showImagePicker = false
-    @FocusState.Binding var isFocus: Bool
-    @Binding var showScheduledList : Bool
     
     var placeholder: String = "Enter message"
     var onSend: () -> Void
@@ -40,7 +42,7 @@ struct InputMessageView: View {
                     }
                     .padding(.leading, 4)
                     .overlay(alignment: .leading) {
-                        Rectangle().fill(Color.blue).frame(width: 2) // Đường kẻ xanh bên trái
+                        Rectangle().fill(Color.blue).frame(width: 2)
                     }
                     
                     Spacer()

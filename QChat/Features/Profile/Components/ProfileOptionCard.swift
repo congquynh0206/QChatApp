@@ -29,7 +29,7 @@ struct ProfileOptionCard: View {
                 if option.type == .toggle {
                     Toggle("", isOn: $toggleParams)
                         .labelsHidden()
-                        .scaleEffect(0.8) // Thu nhỏ toggle một chút cho vừa card
+                        .scaleEffect(0.8) 
                 }
             }
             

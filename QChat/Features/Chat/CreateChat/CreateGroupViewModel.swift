@@ -67,7 +67,7 @@ class CreateGroupViewModel: ObservableObject {
         let newGroup = ChatGroup(
             id: newGroupId,
             name: groupName,
-            avatarUrl: "",
+            avatarUrl: "group-avatar",
             adminId: currentUserID,
             members: finalMembers,
             latestMessage: initialMessage,

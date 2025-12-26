@@ -73,8 +73,8 @@ struct GroupChatView: View {
             InputMessageView(
                 text: $viewModel.text,
                 replyMessage: $replyingMessage,
-                isFocus: $isInputFocused,
                 showScheduledList: $showScheduledList,
+                isFocus: $isInputFocused,
                 onSend: {
                     viewModel.sendTextMessage(replyTo: replyingMessage)
                     replyingMessage = nil

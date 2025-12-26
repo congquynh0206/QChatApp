@@ -44,7 +44,7 @@ struct EditGroupView: View {
                         
                         // Hiển thị icon
                         if viewModel.currentMemberIds.contains(user.id) {
-                            // User đang trong nhóm -> Hiển thị dấu trừ
+                            // User đang trong nhóm thì hiển thị dấu trừ
                             Button {
                                 userToDelete = user
                                 showDeleteAlert = true
@@ -53,7 +53,7 @@ struct EditGroupView: View {
                                     .font(.title2)
                                     .foregroundColor(.red)
                             }
-                            .buttonStyle(BorderlessButtonStyle()) // Tránh click nhầm row
+                            .buttonStyle(BorderlessButtonStyle())
                             
                         } else {
                             // User chưa trong nhóm thì hiển thị Checkbox để thêm
@@ -83,13 +83,13 @@ struct EditGroupView: View {
                     Button("Save") {
                         viewModel.saveChanges { success in
                             if success {
-                                onSaveSuccess?() // Callback ra ngoài reload data
+                                onSaveSuccess?()
                                 dismiss()
                             }
                         }
                     }
                     .bold()
-                    .disabled(!viewModel.canSave) // Chỉ enable khi có thay đổi
+                    .disabled(!viewModel.canSave)
                 }
             }
             .alert(isPresented: $showDeleteAlert) {

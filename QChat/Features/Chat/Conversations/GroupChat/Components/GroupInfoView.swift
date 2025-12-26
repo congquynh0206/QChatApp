@@ -88,7 +88,7 @@ struct GroupInfoView: View {
                     viewModel.leaveGroup { success in
                         if success {
                             dismiss()
-                            onLeaveOrDelete?() // Báo view cha thoát ra
+                            onLeaveOrDelete?()
                         }
                     }
                 }
